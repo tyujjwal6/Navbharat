@@ -1,9 +1,13 @@
+
+
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Mail, ArrowLeft, Shield, CheckCircle2, AlertCircle, Eye, EyeOff, Watch } from 'lucide-react';
+import { Phone, ArrowLeft, Shield, CheckCircle2, AlertCircle, Watch } from 'lucide-react';
+import { axiosInstance } from '../baseurl/axiosInstance';
+import { useNavigate } from 'react-router-dom';
 
 // Particle System Component
 const ParticleSystem = ({ density = 30, speed = 0.3, color = 'rgba(255, 255, 255, 0.1)' }) => {
@@ -215,8 +219,8 @@ const Timer = ({ initialTime, onComplete, isActive }) => {
 
 // Main Login Component
 export default function LoginPage() {
-  const [step, setStep] = useState('email'); // 'email' or 'otp'
-  const [email, setEmail] = useState('');
+  const [step, setStep] = useState('mobile'); // 'mobile' or 'otp'
+  const [mobileNumber, setMobileNumber] = useState('');
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -224,48 +228,104 @@ export default function LoginPage() {
   const [canResend, setCanResend] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
-  const validateEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+  const validateMobileNumber = (number) => {
+    // Remove all non-digit characters
+    const cleanNumber = number.replace(/\D/g, '');
+    // Check if it's exactly 10 digits (after +91)
+    return cleanNumber.length === 10 && /^[6-9]\d{9}$/.test(cleanNumber);
+  };
+
+  const formatMobileNumber = (number) => {
+    // Remove all non-digit characters
+    const cleanNumber = number.replace(/\D/g, '');
+    // Limit to 10 digits
+    return cleanNumber.slice(0, 10);
+  };
+
+  const getFullMobileNumber = () => {
+    return `91${mobileNumber}`;
   };
 
   const handleSendOTP = async () => {
     setErrors({});
     
-    if (!email) {
-      setErrors({ email: 'Email is required' });
+    if (!mobileNumber) {
+      setErrors({ mobile: 'Mobile number is required' });
       return;
     }
     
-    if (!validateEmail(email)) {
-      setErrors({ email: 'Please enter a valid email address' });
+    if (!validateMobileNumber(mobileNumber)) {
+      setErrors({ mobile: 'Please enter a valid 10-digit mobile number' });
       return;
     }
 
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      
+     const res = await axiosInstance.post('/login/send-otp',{phone:getFullMobileNumber()});
+console.log(res.data.status)
+
+      if (res.data.status ==1) {
+        setIsLoading(false);
+        setStep('otp');
+        setIsTimerActive(true);
+        setCanResend(false);
+        setSuccessMessage(`OTP sent to ${getFullMobileNumber()}`);
+      } else {
+        setIsLoading(false);
+        setErrors({ 
+          mobile:'Failed to send OTP. Please try again.' 
+        });
+      }
+    } catch (error) {
       setIsLoading(false);
-      setStep('otp');
-      setIsTimerActive(true);
-      setCanResend(false);
-      setSuccessMessage(`OTP sent to ${email}`);
-    }, 2000);
+      setErrors({ 
+        mobile: 'Network error. Please check your connection and try again.' 
+      });
+      console.error('Send OTP Error:', error);
+    }
   };
+  const navigate = useNavigate();
 
   const handleVerifyOTP = async (otpValue) => {
     if (otpValue.length !== 6) return;
     
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const res = await axiosInstance.post("/login/verify-otp",{phone:getFullMobileNumber(),otp:otpValue})
+
+
+      if (res?.data?.status==1) {
+        setIsLoading(false);
+       localStorage.setItem("userdata",JSON.stringify(res?.data?.data?.rows[0]));
+       localStorage.setItem("isAuthenticated",true);
+       if(res?.data?.data?.rows[0].role==0)
+       {
+         navigate('/dashboard-user');
+       }
+       else{
+         navigate('/dashboard-admin');
+       }
+        
+      } else {
+        setIsLoading(false);
+        setErrors({ 
+          otp:  'Invalid OTP. Please try again.' 
+        });
+        // Clear OTP input on error
+        setOtp('');
+      }
+    } catch (error) {
       setIsLoading(false);
-      // For demo purposes, accept any 6-digit OTP
-      alert('Login successful! Welcome to Navbharat Niwas');
-      // In real app, redirect to dashboard
-    }, 1500);
+      setErrors({ 
+        otp: 'Network error. Please check your connection and try again.' 
+      });
+      console.error('Verify OTP Error:', error);
+      // Clear OTP input on error
+      setOtp('');
+    }
   };
 
   const handleTimerComplete = () => {
@@ -273,22 +333,60 @@ export default function LoginPage() {
     setCanResend(true);
   };
 
-  const handleResendOTP = () => {
+  const handleResendOTP = async () => {
     setOtp('');
-    setIsTimerActive(true);
-    setCanResend(false);
-    setSuccessMessage('OTP resent successfully');
+    setIsLoading(true);
     
-    setTimeout(() => setSuccessMessage(''), 3000);
+    try {
+      const response = await fetch('/api/send-otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          mobile: getFullMobileNumber(),
+          resend: true, // Flag to indicate this is a resend request
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setIsLoading(false);
+        setIsTimerActive(true);
+        setCanResend(false);
+        setSuccessMessage(data.message || 'OTP resent successfully');
+        
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } else {
+        setIsLoading(false);
+        setErrors({ 
+          otp: data.message || 'Failed to resend OTP. Please try again.' 
+        });
+      }
+    } catch (error) {
+      setIsLoading(false);
+      setErrors({ 
+        otp: 'Network error. Please check your connection and try again.' 
+      });
+      console.error('Resend OTP Error:', error);
+    }
   };
 
-  const handleBackToEmail = () => {
-    setStep('email');
+  const handleBackToMobile = () => {
+    setStep('mobile');
     setOtp('');
     setIsTimerActive(false);
     setCanResend(false);
     setErrors({});
     setSuccessMessage('');
+    setIsLoading(false);
+  };
+
+  const handleMobileChange = (e) => {
+    const formatted = formatMobileNumber(e.target.value);
+    setMobileNumber(formatted);
+    if (errors.mobile) setErrors({});
   };
 
   return (
@@ -327,9 +425,9 @@ export default function LoginPage() {
       {/* Main Content */}
       <div className="relative z-20 w-full max-w-md mx-auto px-6">
         <AnimatePresence mode="wait">
-          {step === 'email' ? (
+          {step === 'mobile' ? (
             <motion.div
-              key="email-step"
+              key="mobile-step"
               initial={{ opacity: 0, x: -100 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 100 }}
@@ -343,48 +441,53 @@ export default function LoginPage() {
                     transition={{ delay: 0.2, type: "spring" }}
                     className="mx-auto w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center"
                   >
-                    <Mail className="h-8 w-8 text-white" />
+                    <Phone className="h-8 w-8 text-white" />
                   </motion.div>
                   <CardTitle className="text-2xl font-bold text-white">
                     Welcome Back
                   </CardTitle>
                   <p className="text-gray-300">
-                    Enter your email to receive a verification code
+                    Enter your mobile number to receive a verification code
                   </p>
                 </CardHeader>
                 
                 <CardContent className="space-y-6">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-200">
-                      Email Address
+                      Mobile Number
                     </label>
                     <motion.div
                       whileFocus={{ scale: 1.02 }}
                       transition={{ type: "spring", stiffness: 300 }}
+                      className="relative"
                     >
+                      <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-300 font-medium">
+                        +91
+                      </div>
                       <Input
-                        type="email"
-                        placeholder="your@email.com"
-                        value={email}
-                        onChange={(e) => {
-                          setEmail(e.target.value);
-                          if (errors.email) setErrors({});
-                        }}
-                        className={`h-12 bg-white/10 border-white/20 text-white placeholder:text-gray-400 focus:border-indigo-400 ${
-                          errors.email ? 'border-red-400' : ''
+                        type="tel"
+                        placeholder="9876543210"
+                        value={mobileNumber}
+                        onChange={handleMobileChange}
+                        className={`h-12 pl-14 bg-white/10 border-white/20 text-white placeholder:text-gray-400 focus:border-indigo-400 ${
+                          errors.mobile ? 'border-red-400' : ''
                         }`}
+                        maxLength={10}
                       />
                     </motion.div>
-                    {errors.email && (
+                    {errors.mobile && (
                       <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         className="flex items-center gap-2 text-red-400 text-sm"
                       >
                         <AlertCircle className="h-4 w-4" />
-                        {errors.email}
+                        {errors.mobile}
                       </motion.div>
                     )}
+                    <p className="text-xs text-gray-400">
+                      Enter your 10-digit mobile number without country code
+                    </p>
                   </div>
 
                   <motion.div
@@ -435,11 +538,11 @@ export default function LoginPage() {
                     <Shield className="h-8 w-8 text-white" />
                   </motion.div>
                   <CardTitle className="text-2xl font-bold text-white">
-                    Verify Your Email
+                    Verify Your Mobile
                   </CardTitle>
                   <p className="text-gray-300">
                     We've sent a 6-digit code to <br />
-                    <span className="font-semibold text-white">{email}</span>
+                    <span className="font-semibold text-white">{getFullMobileNumber()}</span>
                   </p>
                 </CardHeader>
                 
@@ -452,6 +555,17 @@ export default function LoginPage() {
                     >
                       <CheckCircle2 className="h-4 w-4" />
                       {successMessage}
+                    </motion.div>
+                  )}
+
+                  {errors.otp && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex items-center gap-2 text-red-400 text-sm bg-red-400/10 p-3 rounded-lg border border-red-400/20"
+                    >
+                      <AlertCircle className="h-4 w-4" />
+                      {errors.otp}
                     </motion.div>
                   )}
 
@@ -480,28 +594,35 @@ export default function LoginPage() {
                       </p>
                       <motion.button
                         onClick={handleResendOTP}
-                        disabled={!canResend}
-                        whileHover={{ scale: canResend ? 1.05 : 1 }}
-                        whileTap={{ scale: canResend ? 0.95 : 1 }}
-                        className={`text-sm font-semibold ${
-                          canResend 
+                        disabled={!canResend || isLoading}
+                        whileHover={{ scale: canResend && !isLoading ? 1.05 : 1 }}
+                        whileTap={{ scale: canResend && !isLoading ? 0.95 : 1 }}
+                        className={`text-sm font-semibold flex items-center gap-2 ${
+                          canResend && !isLoading
                             ? 'text-indigo-400 hover:text-indigo-300' 
                             : 'text-gray-500 cursor-not-allowed'
                         }`}
                       >
+                        {isLoading && (
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                            className="w-4 h-4 border-2 border-current border-t-transparent rounded-full"
+                          />
+                        )}
                         Resend OTP
                       </motion.button>
                     </div>
                   </div>
 
                   <motion.button
-                    onClick={handleBackToEmail}
+                    onClick={handleBackToMobile}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors mx-auto"
                   >
                     <ArrowLeft className="h-4 w-4" />
-                    Back to email
+                    Back to mobile number
                   </motion.button>
                 </CardContent>
               </Card>

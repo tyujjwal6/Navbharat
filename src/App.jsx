@@ -9,6 +9,9 @@ import './index.css';
 import Home from './components/pages/Home';
 import LoginPage from './components/pages/Login';
 import SignupPage from './components/pages/Register';
+import DashboardUser from './components/pages/DashboardUser';
+import ProtectedRoutes from './ProtectedRoute';
+import DashboardAdmin from './components/pages/DashboardAdmin';
 
 
 function App() {
@@ -21,7 +24,6 @@ function App() {
     };
   }, []);
 
-  const siteName = "https://navbharatniwas.in/";
   const defaultTitle = "Navbharat Niwas";
   const defaultDescription = "Navbharat Niwas: Leading Contruction and Real Estate Company in India, specializing in Plot Sales, Construction, and Real Estate Development. Explore our innovative solutions for your construction needs.";
   const siteUrl = "https://navbharatniwas.in/";
@@ -45,14 +47,16 @@ function App() {
             style={{ scaleX: scrollYProgress }}
           />
 
-      
-
           <main>
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<LoginPage/>} />
               <Route path="/register" element={<SignupPage/>} />
+             <Route element={<ProtectedRoutes/>}>
+              <Route path="/dashboard-user" element={<DashboardUser/>} />
+              <Route path="/dashboard-admin" element={<DashboardAdmin/>} />
              
+             </Route>
               {/* add more <Route>s here as you build out the site */}
             </Routes>
           </main>

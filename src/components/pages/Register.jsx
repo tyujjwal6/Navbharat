@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { UserPlus, ArrowLeft, Shield,  CheckCircle2, AlertCircle, Mail, User, Sparkles, Watch } from 'lucide-react';
+import { UserPlus, ArrowLeft, Shield, CheckCircle2, AlertCircle, Mail, User, Sparkles, Watch, Phone } from 'lucide-react';
+import { axiosInstance } from '../baseurl/axiosInstance';
 
 // Particle System Component
 const ParticleSystem = ({ density = 30, speed = 0.3, color = 'rgba(255, 255, 255, 0.1)' }) => {
@@ -219,7 +220,8 @@ export default function SignupPage() {
   const [step, setStep] = useState('signup'); // 'signup' or 'otp'
   const [formData, setFormData] = useState({
     name: '',
-    email: ''
+    email: '',
+    phone: ''
   });
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -227,6 +229,7 @@ export default function SignupPage() {
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [canResend, setCanResend] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [apiError, setApiError] = useState('');
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -237,15 +240,30 @@ export default function SignupPage() {
     return name.trim().length >= 2;
   };
 
+  const validatePhone = (phone) => {
+    const phoneRegex = /^[6-9]\d{9}$/;
+    return phoneRegex.test(phone);
+  };
+
   const handleInputChange = (field, value) => {
+    // For phone field, only allow digits and limit to 10 characters
+    if (field === 'phone') {
+      value = value.replace(/\D/g, '').slice(0, 10);
+    }
+    
     setFormData(prev => ({ ...prev, [field]: value }));
+    
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+    if (apiError) {
+      setApiError('');
     }
   };
 
   const handleSendOTP = async () => {
     setErrors({});
+    setApiError('');
     const newErrors = {};
     
     if (!formData.name.trim()) {
@@ -260,6 +278,12 @@ export default function SignupPage() {
       newErrors.email = 'Please enter a valid email address';
     }
 
+    if (!formData.phone) {
+      newErrors.phone = 'Phone number is required';
+    } else if (!validatePhone(formData.phone)) {
+      newErrors.phone = 'Please enter a valid 10-digit mobile number';
+    }
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -267,28 +291,57 @@ export default function SignupPage() {
 
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+   
+      const res = await axiosInstance.post("/send-otp",{phone: `91${formData.phone}`})
+       if(res?.data.status==-9){
+        setApiError( 'User already exists!');
+       }
+      else if(res.status==200) {
+        setStep('otp');
+        setIsTimerActive(true);
+        setCanResend(false);
+        setSuccessMessage(`OTP sent to +91 ${formData.phone}`);
+      } else {
+        setApiError( 'Failed to send OTP. Please try again.');
+      }
+    } catch (error) {
+      setApiError('Network error. Please check your connection and try again.');
+    } finally {
       setIsLoading(false);
-      setStep('otp');
-      setIsTimerActive(true);
-      setCanResend(false);
-      setSuccessMessage(`OTP sent to ${formData.email}`);
-    }, 2000);
+    }
   };
 
   const handleVerifyOTP = async (otpValue) => {
     if (otpValue.length !== 6) return;
     
     setIsLoading(true);
+    setApiError('');
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+     
+
+      const response = await axiosInstance.post('/verify-otp',{ name: formData.name,
+          email: formData.email,
+          phone: `91${formData.phone}`,
+          otp: otpValue})
+
+      const data =  response.data.data;
+      
+      if (data.rows.length>0) {
+        // Navigate to dashboard
+        window.location.href = '/login';
+        // Or if using React Router: navigate('/dashboard');
+      } else {
+        setApiError('OTP not verified. Please check the code and try again.');
+        setOtp(''); // Clear the OTP input
+      }
+    } catch (error) {
+      setApiError('Network error. Please check your connection and try again.');
+      setOtp(''); // Clear the OTP input
+    } finally {
       setIsLoading(false);
-      // For demo purposes, accept any 6-digit OTP
-      alert(`Welcome ${formData.name}! Account created successfully!`);
-      // In real app, redirect to dashboard or onboarding
-    }, 1500);
+    }
   };
 
   const handleTimerComplete = () => {
@@ -296,13 +349,25 @@ export default function SignupPage() {
     setCanResend(true);
   };
 
-  const handleResendOTP = () => {
+  const handleResendOTP = async () => {
     setOtp('');
-    setIsTimerActive(true);
-    setCanResend(false);
-    setSuccessMessage('OTP resent successfully');
+    setApiError('');
     
-    setTimeout(() => setSuccessMessage(''), 3000);
+    try {
+      const res = await axiosInstance.post("/send-otp",{phone: `91${formData.phone}`})
+
+      
+      if (res.status==200) {
+        setStep('otp');
+        setIsTimerActive(true);
+        setCanResend(false);
+        setSuccessMessage(`OTP sent to +91 ${formData.phone}`);
+      } else {
+        setApiError( 'Failed to send OTP. Please try again.');
+      }
+    } catch (error) {
+      setApiError('Network error. Please check your connection and try again.');
+    }
   };
 
   const handleBackToSignup = () => {
@@ -312,6 +377,7 @@ export default function SignupPage() {
     setCanResend(false);
     setErrors({});
     setSuccessMessage('');
+    setApiError('');
   };
 
   return (
@@ -402,6 +468,17 @@ export default function SignupPage() {
                 </CardHeader>
                 
                 <CardContent className="space-y-6">
+                  {apiError && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex items-center gap-2 text-red-400 text-sm bg-red-400/10 p-3 rounded-lg border border-red-400/20"
+                    >
+                      <AlertCircle className="h-4 w-4" />
+                      {apiError}
+                    </motion.div>
+                  )}
+
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-200 flex items-center gap-2">
@@ -464,6 +541,41 @@ export default function SignupPage() {
                         </motion.div>
                       )}
                     </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-200 flex items-center gap-2">
+                        <Phone className="h-4 w-4 text-purple-400" />
+                        Mobile Number
+                      </label>
+                      <motion.div
+                        whileFocus={{ scale: 1.02 }}
+                        transition={{ type: "spring", stiffness: 300 }}
+                        className="relative"
+                      >
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <span className="text-gray-400 text-sm">+91</span>
+                        </div>
+                        <Input
+                          type="tel"
+                          placeholder="9876543210"
+                          value={formData.phone}
+                          onChange={(e) => handleInputChange('phone', e.target.value)}
+                          className={`h-12 pl-12 bg-white/10 border-white/20 text-white placeholder:text-gray-400 focus:border-purple-400 ${
+                            errors.phone ? 'border-red-400' : ''
+                          }`}
+                        />
+                      </motion.div>
+                      {errors.phone && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="flex items-center gap-2 text-red-400 text-sm"
+                        >
+                          <AlertCircle className="h-4 w-4" />
+                          {errors.phone}
+                        </motion.div>
+                      )}
+                    </div>
                   </div>
 
                   <motion.div
@@ -495,7 +607,7 @@ export default function SignupPage() {
                         ) : (
                           <>
                             <Sparkles className="h-5 w-5" />
-                            Create Account
+                            Send OTP
                           </>
                         )}
                       </span>
@@ -554,12 +666,12 @@ export default function SignupPage() {
                     />
                   </motion.div>
                   <CardTitle className="text-2xl font-bold text-white">
-                    Verify Your Email
+                    Verify Your Phone
                   </CardTitle>
                   <div className="text-gray-300 space-y-1">
                     <p>Hi <span className="font-semibold text-white">{formData.name}</span>!</p>
                     <p>We've sent a 6-digit code to</p>
-                    <p className="font-semibold text-purple-300">{formData.email}</p>
+                    <p className="font-semibold text-purple-300">+91 {formData.phone}</p>
                   </div>
                 </CardHeader>
                 
@@ -572,6 +684,17 @@ export default function SignupPage() {
                     >
                       <CheckCircle2 className="h-4 w-4" />
                       {successMessage}
+                    </motion.div>
+                  )}
+
+                  {apiError && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex items-center gap-2 text-red-400 text-sm bg-red-400/10 p-3 rounded-lg border border-red-400/20"
+                    >
+                      <AlertCircle className="h-4 w-4" />
+                      {apiError}
                     </motion.div>
                   )}
 

@@ -526,7 +526,7 @@ const AllProjectsSection = ({ searchTerm, setSearchTerm, location, setLocation, 
                   <SelectTrigger className="h-12 border-indigo-200 focus:border-indigo-500">
                     <MapPin className="inline-block mr-2 text-indigo-400"/>Location
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white">
                     <SelectItem value="all">All Locations</SelectItem>
                     <SelectItem value="New York">New York</SelectItem>
                     <SelectItem value="Miami">Miami</SelectItem>
@@ -540,7 +540,7 @@ const AllProjectsSection = ({ searchTerm, setSearchTerm, location, setLocation, 
                   <SelectTrigger className="h-12 border-indigo-200 focus:border-indigo-500">
                     <Wallet className="inline-block mr-2 text-indigo-400"/>Budget
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white">
                     <SelectItem value="all">All Budgets</SelectItem>
                     <SelectItem value="500k-1M">$500k - $1M</SelectItem>
                     <SelectItem value="1M-2M">$1M - $2M</SelectItem>
