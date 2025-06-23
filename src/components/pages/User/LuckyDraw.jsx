@@ -1,39 +1,132 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Gift, Trophy, User, Hash, Crown, Banknote } from 'lucide-react';
+import { Gift, Trophy, User, Hash, Crown, Banknote, Calendar, Filter } from 'lucide-react';
 import { axiosInstance } from '../../baseurl/axiosInstance';
 
 const LuckyDraw = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-   const userdata = JSON.parse(localStorage.getItem("userdata"));
-   const [winners,setwinner]=useState([]);
-  // This would typically come from your auth context or props
-  const loggedInuser_id = userdata?.user_id
-useEffect(()=>{
-  const getdata = async()=>{
-     const response = await axiosInstance.get('/draft', {
-                   params: { alloted: true,allotment_done:true } // This is the key parameter to fetch only alloted users
-                 });
-                 setwinner(response?.data?.data?.rows);
-  }
-  getdata();
-},[])
-
+  const [allWinners, setAllWinners] = useState([]);
+  const [filteredWinners, setFilteredWinners] = useState([]);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [availableDates, setAvailableDates] = useState([]);
+  const [showDateFilter, setShowDateFilter] = useState(false);
+  
+  const userdata = JSON.parse(localStorage.getItem("userdata"));
+  const loggedInuser_id = userdata?.user_id;
 
   useEffect(() => {
-    if (!isPaused) {
+    const getdata = async () => {
+      try {
+        const response = await axiosInstance.get('/draft', {
+          params: { alloted: true, allotment_done: true }
+        });
+        const winnersData = response?.data?.data?.rows || [];
+        setAllWinners(winnersData);
+        
+        // Extract unique dates from the response
+        const dates = winnersData
+          .map(winner => winner.opening_date)
+          .filter(date => date) // Filter out null/undefined dates
+          .map(date => getDateString(date)) // Convert to YYYY-MM-DD format using consistent function
+          .filter((date, index, self) => self.indexOf(date) === index) // Remove duplicates
+          .sort(); // Sort dates
+        
+        setAvailableDates(dates);
+        
+        // Set initial filtered winners to all winners
+        setFilteredWinners(winnersData);
+      } catch (error) {
+        console.error('Error fetching winners:', error);
+      }
+    };
+    getdata();
+  }, []);
+
+  // Filter winners based on selected date
+  useEffect(() => {
+    if (selectedDate) {
+      const filtered = allWinners.filter(winner => {
+        if (!winner.opening_date) return false;
+        const winnerDate = getDateString(winner.opening_date);
+        return winnerDate === selectedDate;
+      });
+      setFilteredWinners(filtered);
+      setCurrentIndex(0); // Reset to first winner when filter changes
+    } else {
+      setFilteredWinners(allWinners);
+      setCurrentIndex(0);
+    }
+  }, [selectedDate, allWinners]);
+
+  // Auto-play effect
+  useEffect(() => {
+    if (!isPaused && filteredWinners.length > 0) {
       const interval = setInterval(() => {
-        setCurrentIndex((prevIndex) => (prevIndex + 1) % winners.length);
+        setCurrentIndex((prevIndex) => (prevIndex + 1) % filteredWinners.length);
       }, 3000);
 
       return () => clearInterval(interval);
     }
-  }, [isPaused, winners.length]);
+  }, [isPaused, filteredWinners.length]);
 
-  const currentWinner = winners[currentIndex];
+  const currentWinner = filteredWinners[currentIndex];
   const isMyCard = currentWinner?.user_id == loggedInuser_id;
+
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    // Extract just the date part (YYYY-MM-DD) to avoid timezone issues
+    const datePart = dateString.split('T')[0];
+    const [year, month, day] = datePart.split('-');
+    const date = new Date(year, month - 1, day); // month is 0-indexed
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short', 
+      day: 'numeric'
+    });
+  };
+
+  const getDateString = (dateString) => {
+    if (!dateString) return '';
+    // Extract just the date part (YYYY-MM-DD) to avoid timezone conversion
+    return dateString.split('T')[0];
+  };
+
+  const handleDateChange = (e) => {
+    setSelectedDate(e.target.value);
+  };
+
+  const clearDateFilter = () => {
+    setSelectedDate('');
+  };
+
+  if (filteredWinners.length === 0) {
+    return (
+      <div className="w-full h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-rose-50 p-4 flex items-center justify-center">
+        <Card className="w-full max-w-md p-6 text-center">
+          <CardContent>
+            <Trophy className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-gray-600 mb-2">No Winners Found</h2>
+            <p className="text-gray-500 mb-4">
+              {selectedDate 
+                ? `No winners found for ${formatDate(selectedDate + 'T00:00:00.000Z')}`
+                : 'No winners available at the moment.'
+              }
+            </p>
+            {selectedDate && (
+              <button
+                onClick={clearDateFilter}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+              >
+                Clear Filter
+              </button>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-rose-50 p-2 md:p-4 flex flex-col">
@@ -49,6 +142,51 @@ useEffect(()=>{
             <Trophy className="w-5 h-5 md:w-6 md:h-6 text-yellow-500" />
           </div>
           <p className="text-sm md:text-base text-gray-600">Congratulations to all our amazing winners! 🎉</p>
+          
+          {/* Date Filter Section */}
+          <div className="mt-4 flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-4">
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setShowDateFilter(!showDateFilter)}
+                className="flex items-center space-x-2 px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
+              >
+                <Filter className="w-4 h-4 text-gray-600" />
+                <span className="text-sm font-medium text-gray-700">Filter by Date</span>
+              </button>
+              
+              {showDateFilter && (
+                <div className="flex items-center space-x-2">
+                  <Calendar className="w-4 h-4 text-gray-600" />
+                  <select
+                    value={selectedDate}
+                    onChange={handleDateChange}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-sm"
+                  >
+                    <option value="">All Dates</option>
+                    {availableDates.map(date => (
+                      <option key={date} value={date}>
+                        {formatDate(date + 'T00:00:00.000Z')}
+                      </option>
+                    ))}
+                  </select>
+                  
+                  {selectedDate && (
+                    <button
+                      onClick={clearDateFilter}
+                      className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+            
+            {/* Results count */}
+            <div className="text-sm text-gray-600 bg-white px-3 py-1 rounded-full shadow-sm">
+              {filteredWinners.length} winner{filteredWinners.length !== 1 ? 's' : ''} found
+            </div>
+          </div>
         </div>
         
         {/* Main Card Section */}
@@ -115,17 +253,24 @@ useEffect(()=>{
                         </span>
                       </div>
 
-                        <div className="flex items-center justify-center sm:justify-start space-x-1">
+                      <div className="flex items-center justify-center sm:justify-start space-x-1">
                         <Banknote className={`w-4 h-4 ${isMyCard ? 'text-yellow-600' : 'text-gray-500'}`} />
                         <span className={`font-medium ${
                           isMyCard ? 'text-yellow-700' : 'text-gray-600'
                         }`}>
-                          Alloted Unit Number -
-                          {currentWinner?.allot}
+                          Unit: {currentWinner?.allot}
                         </span>
                       </div>
                       
-                     
+                      {/* Opening Date */}
+                      <div className="flex items-center justify-center sm:justify-start space-x-1 col-span-1 sm:col-span-2">
+                        <Calendar className={`w-4 h-4 ${isMyCard ? 'text-yellow-600' : 'text-gray-500'}`} />
+                        <span className={`font-medium ${
+                          isMyCard ? 'text-yellow-700' : 'text-gray-600'
+                        }`}>
+                          Opening: {formatDate(currentWinner?.opening_date)}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -199,11 +344,11 @@ useEffect(()=>{
 
           {/* Dots indicator */}
           <div className="flex justify-center space-x-2 mt-2 flex-shrink-0">
-            {winners.map((winner, index) => (
+            {filteredWinners.map((winner, index) => (
               <button
                 key={index}
                 onClick={() => setCurrentIndex(index)}
-                className={`h-2 rounded-full transition-all duration-300 ${
+                className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
                   index === currentIndex 
                     ? (winner?.user_id == loggedInuser_id ? 'bg-yellow-500 w-6 shadow-md' : 'bg-purple-600 w-6 shadow-md')
                     : 'bg-gray-300 w-2 hover:bg-gray-400 hover:w-3'
@@ -216,11 +361,11 @@ useEffect(()=>{
         {/* Card Previews */}
         <div className="w-full flex-shrink-0">
           <div className="flex space-x-2 md:space-x-3 overflow-x-auto pb-2 px-2 -mx-2 scrollbar-hide">
-            {winners.map((winner, index) => {
+            {filteredWinners.map((winner, index) => {
               const isPreviewMyCard = winner?.user_id == loggedInuser_id;
               return (
                 <div
-                  key={winner?.user_id}
+                  key={`${winner?.user_id}-${index}`}
                   onClick={() => setCurrentIndex(index)}
                   className={`flex-shrink-0 cursor-pointer transition-all duration-300 transform hover:scale-105 ${
                     index === currentIndex 
@@ -228,7 +373,7 @@ useEffect(()=>{
                       : 'hover:shadow-md opacity-75 hover:opacity-100'
                   }`}
                 >
-                  <Card className={`w-44 md:w-48 h-24 md:h-28 border overflow-hidden ${
+                  <Card className={`w-44 md:w-48 h-32 md:h-36 border overflow-hidden ${
                     isPreviewMyCard 
                       ? 'bg-gradient-to-br from-yellow-50 to-amber-50 border-yellow-300' 
                       : 'bg-white'
@@ -266,7 +411,7 @@ useEffect(()=>{
                         )}
                       </div>
                       
-                      <div className={`p-1.5 rounded text-center ${
+                      <div className={`p-1.5 rounded text-center mb-1 ${
                         isPreviewMyCard ? 'bg-yellow-100' : 'bg-purple-50'
                       }`}>
                         <div className="flex items-center justify-center space-x-1">
@@ -279,6 +424,18 @@ useEffect(()=>{
                             {winner?.gift}
                           </p>
                         </div>
+                      </div>
+                      
+                      {/* Opening date in preview */}
+                      <div className="flex items-center justify-center space-x-1">
+                        <Calendar className={`w-3 h-3 ${
+                          isPreviewMyCard ? 'text-yellow-600' : 'text-gray-500'
+                        }`} />
+                        <p className={`text-xs truncate ${
+                          isPreviewMyCard ? 'text-yellow-700' : 'text-gray-600'
+                        }`}>
+                          {formatDate(winner?.opening_date)}
+                        </p>
                       </div>
                     </CardContent>
                   </Card>

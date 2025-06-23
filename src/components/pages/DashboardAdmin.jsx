@@ -13,7 +13,8 @@ import {
   Verified,
   NotebookTabs,
   FilesIcon,
-  UserCheck2
+  UserCheck2,
+  PartyPopper
 } from 'lucide-react';
 import Blogs from './Admin/Blogs'
 import { useNavigate } from 'react-router-dom';
@@ -22,6 +23,7 @@ import DrawForms from './Admin/DrawForms';
 import FilledForms from './Admin/FilledForms';
 import Results from './Admin/Results';
 import Advisor from './Admin/Advisor';
+import LuckyDraw from './User/LuckyDraw';
 
 const DashboardAdmin = () => {
   const [activeTab, setActiveTab] = useState('sites');
@@ -32,6 +34,7 @@ const DashboardAdmin = () => {
     { id: 'sites', label: 'All Sites', icon: Home, component: AllSites },
     { id: 'drawforms', label: 'Draw Forms', icon: BarChart3, component: DrawForms },
     { id: 'filledforms', label: 'Filled Forms', icon: Verified, component:FilledForms },
+    { id: 'luckydraw', label: 'Lucky Draws', icon: PartyPopper, component:LuckyDraw },
     { id: 'blogs', label: 'Blogs', icon: NotebookTabs, component: Blogs },
     { id: 'results', label: 'Results', icon: FilesIcon, component: Results },
     { id: 'advisor', label: 'Advisors', icon: UserCheck2, component: Advisor },

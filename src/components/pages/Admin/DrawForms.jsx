@@ -26,7 +26,7 @@ const DrawForms = () => {
     try {
       setLoading(true);
       const res = await axiosInstance.get("/draw");
-      setForms(res.data.data.rows || []);
+      setForms(res.data.data.rows.reverse() || []);
     } catch (error) {
       console.error('Error fetching draws:', error);
       setForms([]);
