@@ -302,7 +302,8 @@ export default function SignupPage() {
         setIsTimerActive(true);
         setCanResend(false);
         setSuccessMessage(`OTP sent to +91 ${formData.phone}`);
-      } else {
+      }
+       else {
         setApiError( 'Failed to send OTP. Please try again.');
       }
     } catch (error) {

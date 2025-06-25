@@ -20,6 +20,7 @@ export default function FillDraw() {
   const [individualForm, setIndividualForm] = useState({
     name: '',
     phone: '',
+    email: '',
     address: '',
     occupation: '',
     fatherName: '',
@@ -53,6 +54,29 @@ export default function FillDraw() {
     preference: '',
     panPhoto: null,
     passportPhoto: null
+  });
+
+  // --- EOI Form State (New) ---
+  const [eoiForm, setEoiForm] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    address: '',
+    occupation: '',
+    fatherName: '',
+    aadharNumber: '',
+    panNumber: '',
+    dob: '',
+    nationality: '',
+    advisor: '', // Will hold advisor ID
+    projectSelection: '',
+    paymentPlan: '',
+    plotSize: '',
+    preferences: '',
+    aadharFront: null,
+    aadharBack: null,
+    panPhoto: null,
+    profilePhoto: null
   });
 
   // --- API State Management ---
@@ -94,31 +118,39 @@ export default function FillDraw() {
     fetchInitialData();
   }, []);
 
+  // --- Helper to get project name based on form type ---
+  const getProjectName = (formType) => {
+    if (formType === 'individual') return individualForm.projectSelection;
+    if (formType === 'company') return companyForm.project;
+    if (formType === 'eoi') return eoiForm.projectSelection;
+    return null;
+  }
+
   // --- Get Dynamic Data Based on Selected Project ---
   const getProjectData = (projectName) => {
     return projects.find(project => project.name === projectName) || null;
   };
 
   const getPaymentPlans = (formType) => {
-    const projectName = formType === 'individual' ? individualForm.projectSelection : companyForm.project;
+    const projectName = getProjectName(formType);
     const project = getProjectData(projectName);
     return project ? project.payment_plan || [] : [];
   };
 
   const getPlotSizes = (formType) => {
-    const projectName = formType === 'individual' ? individualForm.projectSelection : companyForm.project;
+    const projectName = getProjectName(formType);
     const project = getProjectData(projectName);
     return project ? project.plot_sizes || [] : [];
   };
 
   const getPreferences = (formType) => {
-    const projectName = formType === 'individual' ? individualForm.projectSelection : companyForm.project;
+    const projectName = getProjectName(formType);
     const project = getProjectData(projectName);
     return project ? project.prefer || [] : [];
   };
 
   const getDrawCharges = (formType) => {
-    const projectName = formType === 'individual' ? individualForm.projectSelection : companyForm.project;
+    const projectName = getProjectName(formType);
     const project = getProjectData(projectName);
     return project ? project.draw_charges || 5100 : 5100;
   };
@@ -132,8 +164,10 @@ export default function FillDraw() {
         const base64 = e.target.result;
         if (formType === 'individual') {
           setIndividualForm(prev => ({ ...prev, [fieldName]: base64 }));
-        } else {
+        } else if (formType === 'company') {
           setCompanyForm(prev => ({ ...prev, [fieldName]: base64 }));
+        } else if (formType === 'eoi') {
+          setEoiForm(prev => ({ ...prev, [fieldName]: base64 }));
         }
       };
       reader.readAsDataURL(file);
@@ -143,8 +177,10 @@ export default function FillDraw() {
   const handleFileRemove = (formType, fieldName) => {
     if (formType === 'individual') {
         setIndividualForm(prev => ({ ...prev, [fieldName]: null }));
-    } else {
+    } else if (formType === 'company') {
         setCompanyForm(prev => ({ ...prev, [fieldName]: null }));
+    } else if (formType === 'eoi') {
+        setEoiForm(prev => ({ ...prev, [fieldName]: null }));
     }
   };
 
@@ -162,13 +198,23 @@ export default function FillDraw() {
         }
         return newForm;
       });
-    } else {
+    } else if (formType === 'company') {
       setCompanyForm(prev => {
         const newForm = { ...prev, [fieldName]: value };
         if (fieldName === 'project') {
           newForm.paymentPlan = '';
           newForm.plotSize = '';
           newForm.preference = '';
+        }
+        return newForm;
+      });
+    } else if (formType === 'eoi') {
+      setEoiForm(prev => {
+        const newForm = { ...prev, [fieldName]: value };
+        if (fieldName === 'projectSelection') {
+          newForm.paymentPlan = '';
+          newForm.plotSize = '';
+          newForm.preferences = '';
         }
         return newForm;
       });
@@ -212,7 +258,7 @@ export default function FillDraw() {
     try {
       await axiosInstance.post('/create-draft', payload);
       setSuccess('Individual registration submitted successfully!');
-      // setIndividualForm({ name: '', phone: '', address: '', occupation: '', fatherName: '', aadharNumber: '', panNumber: '', dob: '', nationality: '', advisor: '', projectSelection: '', paymentPlan: '', plotSize: '', preferences: '', aadharFront: null, aadharBack: null, panPhoto: null, profilePhoto: null });
+      // setIndividualForm({ ...initial state ... });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -247,9 +293,50 @@ export default function FillDraw() {
 
     try {
       await axiosInstance.post('/create-draft',payload);
-
       setSuccess('Company registration submitted successfully!');
-      // setCompanyForm({ companyName: '', authorizedSignatory: '', gstNumber: '', panNumber: '', companyAddress: '', authorizedSignatoryAddress: '', advisor: '', project: '', paymentPlan: '', plotSize: '', preference: '', panPhoto: null, passportPhoto: null });
+      // setCompanyForm({ ...initial state ... });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEoiSubmit = async () => {
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    const payload = {
+      user_id:userdata?.user_id,
+      draft_type: 3, // The key difference for EOI
+      advance:getDrawCharges('eoi').toLocaleString(),
+      draw_id:drawid,
+      email:eoiForm?.email,
+      name: eoiForm.name,
+      phone: eoiForm.phone,
+      address: eoiForm.address,
+      occupation: eoiForm.occupation,
+      father_name: eoiForm.fatherName,
+      aadhar: eoiForm.aadharNumber,
+      pan: eoiForm.panNumber,
+      dob: eoiForm.dob,
+      nationality: eoiForm.nationality,
+      adv_id: eoiForm.advisor,
+      project: eoiForm.projectSelection,
+      payment_plan: eoiForm.paymentPlan,
+      plot_size: eoiForm.plotSize,
+      prefer: eoiForm.preferences,
+      aadhar_front: eoiForm.aadharFront,
+      aadhar_back: eoiForm.aadharBack,
+      pan_photo: eoiForm.panPhoto,
+      profile_image: eoiForm.profilePhoto,
+    };
+    
+    try {
+      await axiosInstance.post('/create-draft', payload);
+      setSuccess('EOI form submitted successfully!');
+      // setEoiForm({ ...initial state ... });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -300,14 +387,15 @@ export default function FillDraw() {
       <div className="w-full mx-auto">
         <Card className="shadow-2xl border-0 bg-white/95 backdrop-blur-sm">
           <CardHeader className="text-center pb-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg">
-            <CardTitle className="text-3xl font-bold flex items-center justify-center gap-3"><FileText className="h-8 w-8" />Lucky Draw Form</CardTitle>
+            <CardTitle className="text-3xl font-bold flex items-center justify-center gap-3"><FileText className="h-8 w-8" />Lucky Draw & EOI Form</CardTitle>
             <p className="text-blue-100 mt-2">Choose your registration type and fill the required details</p>
           </CardHeader>
           <CardContent className="p-6">
             <Tabs defaultValue="individual" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-8 bg-gray-100 p-1 rounded-lg">
-                <TabsTrigger value="individual" className="flex items-center gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white transition-all duration-200"><User className="h-4 w-4" /> Individual Registration</TabsTrigger>
-                <TabsTrigger value="company" className="flex items-center gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white transition-all duration-200"><Building2 className="h-4 w-4" /> Company Registration</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-3 mb-8 bg-gray-100 p-1 rounded-lg">
+                <TabsTrigger value="individual" className="flex items-center gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white transition-all duration-200"><User className="h-4 w-4" /> Individual</TabsTrigger>
+                <TabsTrigger value="company" className="flex items-center gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white transition-all duration-200"><Building2 className="h-4 w-4" /> Company</TabsTrigger>
+                <TabsTrigger value="eoi" className="flex items-center gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white transition-all duration-200"><FileText className="h-4 w-4" /> EOI</TabsTrigger>
               </TabsList>
 
               {/* Individual Form */}
@@ -317,10 +405,9 @@ export default function FillDraw() {
                     {/* Personal Information */}
                     <div className="space-y-4">
                       <h3 className="text-lg font-semibold text-gray-800 border-b pb-2 flex items-center gap-2"><User className="h-5 w-5 text-blue-600" /> Personal Information</h3>
-                      {/* ... other personal info fields ... */}
                       <div className="space-y-2"><Label htmlFor="name">Full Name *</Label><Input id="name" placeholder="Enter your full name" value={individualForm.name} onChange={(e) => handleInputChange(e.target.value, 'name', 'individual')} required disabled={loading} /></div>
                       <div className="space-y-2"><Label htmlFor="phone" className="flex items-center gap-2"><Phone className="h-4 w-4 text-blue-600" /> Phone Number *</Label><Input id="phone" placeholder="Enter your phone number" value={individualForm.phone} onChange={(e) => handleInputChange(e.target.value, 'phone', 'individual')} required disabled={loading} /></div>
-                       <div className="space-y-2"><Label htmlFor="email" className="flex items-center gap-2"><Phone className="h-4 w-4 text-blue-600" />email *</Label><Input id="phone" placeholder="Enter your email" value={individualForm.email} onChange={(e) => handleInputChange(e.target.value, 'email', 'individual')} required disabled={loading} /></div>
+                       <div className="space-y-2"><Label htmlFor="email" className="flex items-center gap-2"><Phone className="h-4 w-4 text-blue-600" />Email *</Label><Input id="email" placeholder="Enter your email" value={individualForm.email} onChange={(e) => handleInputChange(e.target.value, 'email', 'individual')} required disabled={loading} /></div>
                       <div className="space-y-2"><Label htmlFor="address" className="flex items-center gap-2"><MapPin className="h-4 w-4 text-blue-600" /> Address *</Label><Textarea id="address" placeholder="Enter your complete address" value={individualForm.address} onChange={(e) => handleInputChange(e.target.value, 'address', 'individual')} rows={3} required disabled={loading} /></div>
                       <div className="space-y-2"><Label htmlFor="occupation" className="flex items-center gap-2"><Briefcase className="h-4 w-4 text-blue-600" /> Occupation *</Label><Input id="occupation" placeholder="Enter your occupation" value={individualForm.occupation} onChange={(e) => handleInputChange(e.target.value, 'occupation', 'individual')} required disabled={loading} /></div>
                       <div className="space-y-2"><Label htmlFor="fatherName">Father's Name *</Label><Input id="fatherName" placeholder="Enter father's name" value={individualForm.fatherName} onChange={(e) => handleInputChange(e.target.value, 'fatherName', 'individual')} required disabled={loading} /></div>
@@ -367,11 +454,8 @@ export default function FillDraw() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
                       <h3 className="text-lg font-semibold text-gray-800 border-b pb-2 flex items-center gap-2"><Building2 className="h-5 w-5 text-blue-600" /> Company Information</h3>
-                      {/* ... other company info fields ... */}
                       <div className="space-y-2"><Label htmlFor="companyName">Company Name *</Label><Input id="companyName" placeholder="Enter company name" value={companyForm.companyName} onChange={(e) => handleInputChange(e.target.value, 'companyName', 'company')} required disabled={loading} /></div>
-                      
                       <div className="space-y-2"><Label htmlFor="email">Email *</Label><Input id="email" placeholder="Enter company email" value={companyForm.email} onChange={(e) => handleInputChange(e.target.value, 'email', 'company')} required disabled={loading} /></div>
-
                       <div className="space-y-2"><Label htmlFor="authorizedSignatory">Authorized Signatory *</Label><Input id="authorizedSignatory" placeholder="Enter authorized signatory name" value={companyForm.authorizedSignatory} onChange={(e) => handleInputChange(e.target.value, 'authorizedSignatory', 'company')} required disabled={loading} /></div>
                       <div className="space-y-2"><Label htmlFor="gstNumber">GST Number *</Label><Input id="gstNumber" placeholder="Enter GST number" value={companyForm.gstNumber} onChange={(e) => handleInputChange(e.target.value, 'gstNumber', 'company')} required disabled={loading} /></div>
                       <div className="space-y-2"><Label htmlFor="companyPanNumber">PAN Number *</Label><Input id="companyPanNumber" placeholder="Enter company PAN number" value={companyForm.panNumber} onChange={(e) => handleInputChange(e.target.value, 'panNumber', 'company')} required disabled={loading} /></div>
@@ -406,6 +490,57 @@ export default function FillDraw() {
                   <Button onClick={handleCompanySubmit} disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg font-semibold">{loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...</> : 'Submit Company Registration'}</Button>
                 </div>
               </TabsContent>
+
+              {/* EOI Form (New) */}
+              <TabsContent value="eoi" className="space-y-6">
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Personal Information */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold text-gray-800 border-b pb-2 flex items-center gap-2"><User className="h-5 w-5 text-blue-600" /> EOI Personal Information</h3>
+                      <div className="space-y-2"><Label htmlFor="eoi-name">Full Name *</Label><Input id="eoi-name" placeholder="Enter your full name" value={eoiForm.name} onChange={(e) => handleInputChange(e.target.value, 'name', 'eoi')} required disabled={loading} /></div>
+                      <div className="space-y-2"><Label htmlFor="eoi-phone" className="flex items-center gap-2"><Phone className="h-4 w-4 text-blue-600" /> Phone Number *</Label><Input id="eoi-phone" placeholder="Enter your phone number" value={eoiForm.phone} onChange={(e) => handleInputChange(e.target.value, 'phone', 'eoi')} required disabled={loading} /></div>
+                      <div className="space-y-2"><Label htmlFor="eoi-email" className="flex items-center gap-2"><Phone className="h-4 w-4 text-blue-600" />Email *</Label><Input id="eoi-email" placeholder="Enter your email" value={eoiForm.email} onChange={(e) => handleInputChange(e.target.value, 'email', 'eoi')} required disabled={loading} /></div>
+                      <div className="space-y-2"><Label htmlFor="eoi-address" className="flex items-center gap-2"><MapPin className="h-4 w-4 text-blue-600" /> Address *</Label><Textarea id="eoi-address" placeholder="Enter your complete address" value={eoiForm.address} onChange={(e) => handleInputChange(e.target.value, 'address', 'eoi')} rows={3} required disabled={loading} /></div>
+                      <div className="space-y-2"><Label htmlFor="eoi-occupation" className="flex items-center gap-2"><Briefcase className="h-4 w-4 text-blue-600" /> Occupation *</Label><Input id="eoi-occupation" placeholder="Enter your occupation" value={eoiForm.occupation} onChange={(e) => handleInputChange(e.target.value, 'occupation', 'eoi')} required disabled={loading} /></div>
+                      <div className="space-y-2"><Label htmlFor="eoi-fatherName">Father's Name *</Label><Input id="eoi-fatherName" placeholder="Enter father's name" value={eoiForm.fatherName} onChange={(e) => handleInputChange(e.target.value, 'fatherName', 'eoi')} required disabled={loading} /></div>
+                      <div className="space-y-2"><Label htmlFor="eoi-dob" className="flex items-center gap-2"><Calendar className="h-4 w-4 text-blue-600" /> Date of Birth *</Label><Input id="eoi-dob" type="date" value={eoiForm.dob} onChange={(e) => handleInputChange(e.target.value, 'dob', 'eoi')} required disabled={loading} /></div>
+                      <div className="space-y-2"><Label htmlFor="eoi-nationality">Nationality *</Label><Input id="eoi-nationality" placeholder="Enter your nationality" value={eoiForm.nationality} onChange={(e) => handleInputChange(e.target.value, 'nationality', 'eoi')} required disabled={loading} /></div>
+                    </div>
+                    {/* Documents & Project Details */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold text-gray-800 border-b pb-2 flex items-center gap-2"><FileText className="h-5 w-5 text-blue-600" /> EOI Documents & Project Details</h3>
+                      <div className="space-y-2"><Label htmlFor="eoi-aadharNumber">Aadhar Number *</Label><Input id="eoi-aadharNumber" placeholder="Enter 12-digit Aadhar number" value={eoiForm.aadharNumber} onChange={(e) => handleInputChange(e.target.value, 'aadharNumber', 'eoi')} required disabled={loading} /></div>
+                      <div className="space-y-2"><Label htmlFor="eoi-panNumber">PAN Number *</Label><Input id="eoi-panNumber" placeholder="Enter PAN number" value={eoiForm.panNumber} onChange={(e) => handleInputChange(e.target.value, 'panNumber', 'eoi')} required disabled={loading} /></div>
+                      <div className="space-y-2">
+                        <Label htmlFor="eoi-advisor" className="flex items-center gap-2"><UserCheck className="h-4 w-4 text-blue-600" /> Advisor *</Label>
+                        <Select onValueChange={(value) => handleInputChange(value, 'advisor', 'eoi')} required disabled={loading} value={eoiForm.advisor}>
+                          <SelectTrigger><SelectValue placeholder="Select advisor" /></SelectTrigger>
+                          <SelectContent className="bg-white">{advisors.map((advisor) => (<SelectItem key={advisor.adv_id} value={advisor.adv_id}>{advisor.name}</SelectItem>))}</SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2"><Label>Project Selection *</Label><Select onValueChange={(value) => handleInputChange(value, 'projectSelection', 'eoi')} required  value={eoiForm.projectSelection}><SelectTrigger><SelectValue placeholder="Select Project" /></SelectTrigger><SelectContent className="bg-white">{projects.map((project) => (<SelectItem key={project.name} value={project.name}>{project.name}</SelectItem>))}</SelectContent></Select></div>
+                      <div className="space-y-2"><Label className="flex items-center gap-2"><CreditCard className="h-4 w-4 text-blue-600" /> Payment Plan *</Label><Select onValueChange={(value) => handleInputChange(value, 'paymentPlan', 'eoi')} required disabled={loading || !eoiForm.projectSelection} value={eoiForm.paymentPlan}><SelectTrigger><SelectValue placeholder={!eoiForm.projectSelection ? "Select Project First" : "Select Payment Plan"} /></SelectTrigger><SelectContent className="bg-white">{getPaymentPlans('eoi').map((plan) => (<SelectItem key={plan} value={plan}>{plan}</SelectItem>))}</SelectContent></Select></div>
+                      <div className="space-y-2"><Label>Plot Size *</Label><Select onValueChange={(value) => handleInputChange(value, 'plotSize', 'eoi')} required disabled={loading || !eoiForm.projectSelection} value={eoiForm.plotSize}><SelectTrigger><SelectValue placeholder={!eoiForm.projectSelection ? "Select Project First" : "Select Plot Size"} /></SelectTrigger><SelectContent className="bg-white">{getPlotSizes('eoi').map((size) => (<SelectItem key={size} value={size}>{size}</SelectItem>))}</SelectContent></Select></div>
+                      <div className="space-y-2"><Label>Preferences</Label><Select onValueChange={(value) => handleInputChange(value, 'preferences', 'eoi')} disabled={loading || !eoiForm.projectSelection} value={eoiForm.preferences}><SelectTrigger><SelectValue placeholder={!eoiForm.projectSelection ? "Select Project First" : "Select Preference"} /></SelectTrigger><SelectContent className="bg-white">{getPreferences('eoi').map((preference) => (<SelectItem key={preference} value={preference}>{preference}</SelectItem>))}</SelectContent></Select></div>
+                    </div>
+                  </div>
+                  <div className="border-t pt-6">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2"><Upload className="h-5 w-5 text-blue-600" /> Document Uploads</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FileUploadField label="Aadhar Photo (Front)" icon={FileText} formType="eoi" fieldName="aadharFront" previewSrc={eoiForm.aadharFront} />
+                      <FileUploadField label="Aadhar Photo (Back)" icon={FileText} formType="eoi" fieldName="aadharBack" previewSrc={eoiForm.aadharBack} />
+                      <FileUploadField label="PAN Photo" icon={CreditCard} formType="eoi" fieldName="panPhoto" previewSrc={eoiForm.panPhoto} />
+                      <FileUploadField label="Profile Photo" icon={Camera} formType="eoi" fieldName="profilePhoto" previewSrc={eoiForm.profilePhoto} />
+                    </div>
+                  </div>
+                  {error && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertDescription>{error}</AlertDescription></Alert>}
+                  {success && <Alert className="bg-green-50 border-green-200 text-green-800"><CheckCircle2 className="h-4 w-4 text-green-600" /><AlertDescription>{success}</AlertDescription></Alert>}
+                  <Alert className="border-blue-200 bg-blue-50"><CreditCard className="h-4 w-4 text-blue-600" /><AlertDescription className="text-blue-800"><strong>Note:</strong> The amount of ₹{getDrawCharges('eoi').toLocaleString()} is refundable in case of no allotment under this scheme.</AlertDescription></Alert>
+                  <Button onClick={handleEoiSubmit} disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg font-semibold">{loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...</> : 'Submit EOI Form'}</Button>
+                </div>
+              </TabsContent>
+
             </Tabs>
           </CardContent>
         </Card>

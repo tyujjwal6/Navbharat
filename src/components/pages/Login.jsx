@@ -275,7 +275,7 @@ console.log(res.data.status)
       } else {
         setIsLoading(false);
         setErrors({ 
-          mobile:'Failed to send OTP. Please try again.' 
+          mobile:'User not Found, register first!' 
         });
       }
     } catch (error) {

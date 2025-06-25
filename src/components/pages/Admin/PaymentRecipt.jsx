@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import { Send } from 'lucide-react';
+import { Send, Download } from 'lucide-react';
 import React, {  forwardRef, useImperativeHandle } from 'react';
 import {
   Dialog,
@@ -49,11 +49,15 @@ const generateReceiptNumber = (userName) => {
     const currentDate = getCurrentDate();
     const dynamicReceiptNo = generateReceiptNumber(user?.name);
 
+    const [isSending, setIsSending] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
+    const [paymentMode, setPaymentMode] = useState('Online');
+
     // Updated payment receipt data with dynamic values
     const receiptData = {
         date: currentDate,
         receiptNo: dynamicReceiptNo,
-        gstNo: user?.gst,
+        gstNo: "09AAKCN0817B1ZQ",
         receivedFrom: {
             name: user?.name,
             address: user?.address,
@@ -65,14 +69,12 @@ const generateReceiptNumber = (userName) => {
         },
         paymentInfo: {
             amountReceived: user?.advance,
-            paymentMode: 'Online',
+            paymentMode: paymentMode,
             transactionDate: currentDate
         },
         purpose: `Booking/Partial Payment for ${user?.project} under the Navbharat Niwas Smart City Development Plan - ${user?.project}`,
        
     };
-
-    const [isSending, setIsSending] = useState(false);
 
     // --- Generate PDF Blob ---
     const generatePdfBlob = async () => {
@@ -96,6 +98,43 @@ const generateReceiptNumber = (userName) => {
         // Convert PDF to blob
         const pdfBlob = pdf.output('blob');
         return pdfBlob;
+    };
+
+    // --- Download PDF ---
+    const handleDownloadPdf = async () => {
+        setIsDownloading(true);
+        try {
+            const receiptPage = document.querySelector('.receipt-page');
+            if (!receiptPage) {
+                throw new Error('Receipt page not found');
+            }
+
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+
+            const canvas = await html2canvas(receiptPage, { 
+                scale: 2, 
+                useCORS: true, 
+                logging: false,
+                backgroundColor: '#ffffff'
+            });
+            
+            const imgData = canvas.toDataURL('image/png');
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+
+            // Generate filename
+            const fileName = `Payment-Receipt-${receiptData?.receiptNo}.pdf`;
+            
+            // Download the PDF
+            pdf.save(fileName);
+            
+        } catch (error) {
+            console.error('Error downloading PDF:', error);
+            alert('Error downloading PDF. Please try again.');
+        } finally {
+            setIsDownloading(false);
+        }
     };
 
     // --- Send PDF via API ---
@@ -142,15 +181,36 @@ const generateReceiptNumber = (userName) => {
     return (
         <div className="font-sans">
             <div className=" mx-auto">
-                {/* Action Button */}
-                <div className="text-center mb-6">
+                {/* Action Buttons */}
+                <div className="text-center mb-6 flex justify-center gap-4 flex-wrap">
+                    {/* Payment Mode Input */}
+                    <div className="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-lg">
+                        <label className="font-medium text-sm">Payment Mode:</label>
+                        <input 
+                            type="text"
+                            value={paymentMode} 
+                            onChange={(e) => setPaymentMode(e.target.value)}
+                            placeholder="Enter payment mode"
+                            className="px-3 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[150px]"
+                        />
+                    </div>
+                    
+                    <Button 
+                        onClick={handleDownloadPdf} 
+                        disabled={isDownloading} 
+                        className="text-lg py-6 px-8 bg-green-600 hover:bg-green-700"
+                        size="lg"
+                    >
+                        {isDownloading ? 'Downloading...' : <><Download size={20} className="mr-2"/> Download PDF</>}
+                    </Button>
+                    
                     <Button 
                         onClick={handleSendPdf} 
                         disabled={isSending} 
                         className="text-lg py-6 px-8"
                         size="lg"
                     >
-                        {isSending ? 'Sending...' : <><Send size={20} className="mr-2"/> Send Payment Receipt via Email</>}
+                        {isSending ? 'Sending...' : <><Send size={20} className="mr-2"/> Send via Email</>}
                     </Button>
                 </div>
                 

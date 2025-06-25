@@ -39,10 +39,10 @@ import {
   Briefcase,
   Cake,
   Globe,
-  ImageIcon,
+  Image,
   Calendar,
+  ClipboardList,
 } from 'lucide-react';
-
 import { axiosInstance } from '../../baseurl/axiosInstance';
 
 // Helper component for displaying a label and value in the details dialog
@@ -68,7 +68,7 @@ const DocumentImage = ({ label, url }) => (
       ) : (
         <div className="flex items-center justify-center h-32 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300">
             <div className='text-center text-gray-500'>
-                <ImageIcon className="h-6 w-6 mx-auto mb-1" />
+                <Image className="h-6 w-6 mx-auto mb-1" />
                 <p className="text-sm">Not provided</p>
             </div>
         </div>
@@ -162,6 +162,45 @@ const IndividualDetails = ({ user }) => (
   </div>
 );
 
+const EOIDetails = ({ eoi }) => (
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-lg"><ClipboardList className="h-5 w-5" />EOI Information</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <DetailItem label="Full Name" value={eoi.name} />
+        <DetailItem label="Father's Name" value={eoi.father_name} />
+        <DetailItem label="Date of Birth" value={new Date(eoi.dob).toLocaleDateString()} icon={Cake} />
+        <DetailItem label="Occupation" value={eoi.occupation} icon={Briefcase} />
+        <DetailItem label="Nationality" value={eoi.nationality} icon={Globe} />
+      </CardContent>
+    </Card>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-lg"><Phone className="h-5 w-5" />Contact & ID</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <DetailItem label="Phone Number" value={eoi.phone} />
+        <DetailItem label="Address" value={eoi.address} />
+        <DetailItem label="Aadhar Number" value={eoi.aadhar} isMono />
+        <DetailItem label="PAN Card" value={eoi.pan} isMono />
+      </CardContent>
+    </Card>
+    <ProjectInfoCard application={eoi} />
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-lg"><FileText className="h-5 w-5" />Documents</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <DocumentImage label="Aadhar Front" url={eoi.aadhar_front} />
+        <DocumentImage label="Aadhar Back" url={eoi.aadhar_back} />
+        <DocumentImage label="PAN Card Photo" url={eoi.pan_photo} />
+      </CardContent>
+    </Card>
+  </div>
+);
+
 const CompanyDetails = ({ company }) => (
   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
     <Card>
@@ -199,6 +238,8 @@ const CompanyDetails = ({ company }) => (
 
 const ApplicationDetailsDialog = ({ application }) => {
   const isIndividual = application.draft_type === 0;
+  const isCompany = application.draft_type === 1;
+  const isEOI = application.draft_type === 3;
 
   return (
     <Dialog>
@@ -215,15 +256,12 @@ const ApplicationDetailsDialog = ({ application }) => {
               <AvatarFallback>{application.displayName?.split(' ').map(n => n[0]).join('')}</AvatarFallback>
             </Avatar>
             Application Details - {application.displayName}
-          
           </DialogTitle>
         </DialogHeader>
         
-        {isIndividual ? (
-          <IndividualDetails user={application} />
-        ) : (
-          <CompanyDetails company={application} />
-        )}
+        {isIndividual && <IndividualDetails user={application} />}
+        {isCompany && <CompanyDetails company={application} />}
+        {isEOI && <EOIDetails eoi={application} />}
       </DialogContent>
     </Dialog>
   );
@@ -234,6 +272,7 @@ const MyApplication = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [projectFilter, setProjectFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
   const [selectedDate, setSelectedDate] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
@@ -251,12 +290,31 @@ const MyApplication = () => {
         // Standardize data for easier use in the component
         const processedData = rawData.map(item => {
           const isIndividual = item.draft_type === 0;
+          const isCompany = item.draft_type === 1;
+          const isEOI = item.draft_type === 3;
+          
+          let type, displayName, displayImage;
+          
+          if (isIndividual) {
+            type = 'Individual';
+            displayName = item.name;
+            displayImage = item.profile_image;
+          } else if (isCompany) {
+            type = 'Company';
+            displayName = item.company_name;
+            displayImage = item.passport_photo;
+          } else if (isEOI) {
+            type = 'EOI';
+            displayName = item.name;
+            displayImage = item.profile_image;
+          }
+          
           return {
             ...item,
             id: item.ticket_id,
-            type: isIndividual ? 'Individual' : 'Company',
-            displayName: isIndividual ? item.name : item.company_name,
-            displayImage: isIndividual ? item.profile_image : item.passport_photo,
+            type,
+            displayName,
+            displayImage,
             status: item.approved ? 'approved' : 'pending',
           };
         });
@@ -270,6 +328,7 @@ const MyApplication = () => {
   }, []);
 
   const projects = useMemo(() => [...new Set(applications.map(app => app.project))], [applications]);
+  const types = useMemo(() => [...new Set(applications.map(app => app.type))], [applications]);
 
   // Helper function to check if two dates are the same day
   const isSameDay = (date1, date2) => {
@@ -289,11 +348,12 @@ const MyApplication = () => {
       
       const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
       const matchesProject = projectFilter === 'all' || app.project === projectFilter;
+      const matchesType = typeFilter === 'all' || app.type === typeFilter;
       const matchesDate = !selectedDate || isSameDay(app.opening_date, selectedDate);
       
-      return matchesSearch && matchesStatus && matchesProject && matchesDate;
+      return matchesSearch && matchesStatus && matchesProject && matchesType && matchesDate;
     });
-  }, [searchTerm, statusFilter, projectFilter, selectedDate, applications]);
+  }, [searchTerm, statusFilter, projectFilter, typeFilter, selectedDate, applications]);
 
   const totalPages = Math.ceil(filteredApplications.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -301,7 +361,7 @@ const MyApplication = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, projectFilter, selectedDate]);
+  }, [searchTerm, statusFilter, projectFilter, typeFilter, selectedDate]);
 
   return (
     <div className="w-full space-y-4 p-6 bg-gray-50/50 min-h-screen">
@@ -329,6 +389,18 @@ const MyApplication = () => {
                 <SelectItem value="approved">Approved</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="rejected">Rejected</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Filter by type" />
+              </SelectTrigger>
+              <SelectContent className="bg-white">
+                <SelectItem value="all">All Types</SelectItem>
+                {types.map(type => (
+                  <SelectItem key={type} value={type}>{type}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
             
@@ -400,7 +472,11 @@ const MyApplication = () => {
                   </div>
                 </TableCell>
                 <TableCell className="font-mono text-sm">{app.ticket_id}</TableCell>
-                <TableCell>{app.type}</TableCell>
+                <TableCell>
+                  <Badge variant={app.type === 'EOI' ? 'default' : 'outline'} className={app.type === 'EOI' ? 'bg-blue-100 text-blue-800' : ''}>
+                    {app.type}
+                  </Badge>
+                </TableCell>
                 <TableCell>{app.project}</TableCell>
                 <TableCell>
                   <Badge variant="outline" className="font-mono">

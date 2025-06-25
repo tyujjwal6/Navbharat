@@ -204,9 +204,11 @@ export default function Home() {
     (budget === '' || budget === 'all' || project.budget === budget)
   );
 
+  const isauth = localStorage.getItem("isAuthenticated");
+
   return (
     <div className="bg-white text-gray-800 font-sans">
-      <Header />
+      <Header isauth ={isauth} />
       <main>
         <HeroSection />
         <AboutUsSection />
@@ -248,7 +250,8 @@ const NavLink = ({ children, href }) => (
   </motion.a>
 );
 
-const Header = () => (
+const Header = ({isauth}) => (
+
   <motion.header 
     initial={{ y: -100, opacity: 0 }}
     animate={{ y: 0, opacity: 1 }}
@@ -264,11 +267,15 @@ const Header = () => (
         <img src="https://navbharatniwas.in/assets/blcklogo-CGNpodye.png" alt="Navbharat Niwas Logo" className='w-auto h-20'/>
       </motion.a>
       <nav className="hidden md:flex gap-10 items-center">
+        {isauth &&
+        <NavLink href="/dashboard-user">DashBoard</NavLink>
+        }
         <NavLink href="#about">About Us</NavLink>
         <NavLink href="#projects">Projects</NavLink>
         <NavLink href="#blog">Blog</NavLink>
         <NavLink href="#contact">Contact</NavLink>
       </nav>
+        {!isauth &&
       <div className="flex items-center gap-2 md:gap-4">
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Link to={'/login'}>
@@ -281,6 +288,8 @@ const Header = () => (
             </Link>
         </motion.div>
       </div>
+       }
+
     </div>
   </motion.header>
 );

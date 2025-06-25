@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { User, Home, Pen, Eraser, Save, ChevronLeft, ChevronRight, Download, Loader2 } from 'lucide-react';
+import { User, Home, Pen, Eraser, Save, ChevronLeft, ChevronRight, Download, Loader2, Clock } from 'lucide-react';
 import { axiosInstance } from '../../baseurl/axiosInstance';
 
 const Allotments = () => {
@@ -18,7 +18,9 @@ const Allotments = () => {
   const [isDrawing, setIsDrawing] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [allotdata,setallotdata] = useState(null);
+  const [allotdata, setallotdata] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isPending, setIsPending] = useState(false);
   const canvasRefs = [useRef(null), useRef(null), useRef(null)];
   const printableComponentRef = useRef(null);
 
@@ -39,7 +41,7 @@ const Allotments = () => {
   });
 
   const [bookingData,setbookingdata] = useState({
-    unitNumber:'12',
+    unitNumber:'',
     area: '',
     project: '',
     developmentCharge: '',
@@ -56,27 +58,69 @@ const Allotments = () => {
 
   useEffect(()=>{
     const getdata = async()=>{
-      const userdata = JSON.parse(localStorage.getItem("userdata"));
-       const response = await axiosInstance.get('/draft', {
-                params: { alloted: true,allotment_done:true,user_id:userdata?.user_id } // This is the key parameter to fetch only alloted users
-              });
-              const alldata = response?.data?.data?.rows[response?.data?.data?.rows?.length-1];
-              setallotdata(response?.data?.data?.rows[response?.data?.data?.rows?.length-1])
-              console.log(response?.data?.data?.rows[response?.data?.data?.rows?.length-1])
-              setuserdata({name:alldata?.name,fatherName:alldata?.father_name,address:alldata?.address,phone:alldata?.phone,email:alldata?.email,panCard:alldata?.pan,aadhar:alldata?.aadhar,dateOfBirth:alldata.dob,profilePic:alldata?.profile_image,ticket_id:alldata.ticket_id});
+      try {
+        setIsLoading(true);
+        const userdata = JSON.parse(localStorage.getItem("userdata"));
+        const response = await axiosInstance.get('/draft', {
+          params: { alloted: true, allotment_done: true, user_id: userdata?.user_id, signed: false }
+        });
+        
+        const rows = response?.data?.data?.rows;
+        
+        // Check if data is empty or not available
+        if (!rows || rows.length === 0) {
+          setIsPending(true);
+          setIsLoading(false);
+          return;
+        }
+        
+        const alldata = rows[rows.length - 1];
+        
+        // Additional check for empty object
+        if (!alldata || Object.keys(alldata).length === 0) {
+          setIsPending(true);
+          setIsLoading(false);
+          return;
+        }
+        
+        setallotdata(alldata);
+        console.log(alldata);
+        
+        setuserdata({
+          name: alldata?.name || '',
+          fatherName: alldata?.father_name || '',
+          address: alldata?.address || '',
+          phone: alldata?.phone || '',
+          email: alldata?.email || '',
+          panCard: alldata?.pan || '',
+          aadhar: alldata?.aadhar || '',
+          dateOfBirth: alldata?.dob || '',
+          profilePic: alldata?.profile_image || 'https://i.pravatar.cc/150?u=default',
+          ticket_id: alldata?.ticket_id || ''
+        });
 
-              setbookingdata({unitNumber:alldata?.allot,project:alldata.project,area:alldata?.area,totalCost:alldata?.total_cost,bookingAmount:alldata?.booking_amount,paymentPlan:alldata?.payment_plan,modeOfPayment:alldata?.mode})
-              
-              
+        setbookingdata({
+          unitNumber: alldata?.allot || '',
+          project: alldata?.project || '',
+          area: alldata?.area || '',
+          totalCost: alldata?.total_cost || '',
+          bookingAmount: alldata?.booking_amount || '',
+          paymentPlan: alldata?.payment_plan || '',
+          modeOfPayment: alldata?.mode || ''
+        });
+        
+        setIsPending(false);
+      } catch (error) {
+        console.error('Error fetching allotment data:', error);
+        setIsPending(true);
+      } finally {
+        setIsLoading(false);
+      }
     }
     getdata()
-  },[])
+  }, [])
 
   // --- Sample Data ---
- 
-
-  
-
   const pages = ['Agreement Details', 'Terms & Conditions', 'Declaration'];
 
   const termsAndConditions = [
@@ -103,6 +147,30 @@ const Allotments = () => {
     'I agree that the measurement/number and area of Plot/Farm House required by me/us can vary at the time of Registry as per the Govt. Rules/Approved Map and Availability.',
     'I/We hereby declare that all information on the application form has been given by me/us and is true to the best of knowledge and belief.'
   ];
+
+  // --- Loading Component ---
+  const renderLoading = () => (
+    <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+      <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      <p className="text-gray-600">Loading allotment details...</p>
+    </div>
+  );
+
+  // --- Pending Component ---
+  const renderPending = () => (
+    <div className="flex flex-col items-center justify-center min-h-[400px] space-y-6">
+      <div className="text-center">
+        <Clock className="h-16 w-16 text-orange-500 mx-auto mb-4" />
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Allotment Pending</h2>
+        <p className="text-gray-600 max-w-md mx-auto">
+          Your allotment is currently being processed. Please check back later or contact our support team for updates.
+        </p>
+      </div>
+      <Badge variant="outline" className="px-4 py-2 text-orange-600 border-orange-200">
+        Status: Pending
+      </Badge>
+    </div>
+  );
 
   // --- PDF Generation ---
   const handleDownloadPdf = async () => {
@@ -156,7 +224,6 @@ const Allotments = () => {
       setIsGenerating(false);
     }
   };
-
 
   // --- Signature Pad Logic ---
   const startDrawing = (e, pageIndex) => {
@@ -215,8 +282,10 @@ const Allotments = () => {
     setSignatures(['', '', '']);
   };
 
-  const saveSignature = () => {
+  const saveSignature = async() => {
+    await axiosInstance.put(`/draft/${allotdata?.ticket_id}`,{signed:true});
     setIsSaved(true);
+
   };
 
   // --- Render Functions for UI ---
@@ -310,6 +379,32 @@ const Allotments = () => {
       </CardContent>
     </Card>
   );
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="w-full p-4 bg-gray-50 min-h-screen">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white shadow-lg rounded-lg p-8">
+            {renderLoading()}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show pending state if no allotment data
+  if (isPending) {
+    return (
+      <div className="w-full p-4 bg-gray-50 min-h-screen">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white shadow-lg rounded-lg p-8">
+            {renderPending()}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full p-4 bg-gray-50 min-h-screen">
