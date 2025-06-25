@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -42,6 +42,7 @@ import {
   Image,
   Calendar,
   ClipboardList,
+  X, // Added X icon for clearing filters
 } from 'lucide-react';
 import { axiosInstance } from '../../baseurl/axiosInstance';
 
@@ -83,8 +84,6 @@ const formatDate = (dateString) => {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
   });
 };
 
@@ -132,9 +131,9 @@ const IndividualDetails = ({ user }) => (
       <CardContent className="space-y-4">
         <DetailItem label="Full Name" value={user.name} />
         <DetailItem label="Father's Name" value={user.father_name} />
-        <DetailItem label="Date of Birth" value={new Date(user.dob).toLocaleDateString()} icon={Cake} />
-        <DetailItem label="Occupation" value={user.occupation} icon={Briefcase} />
-        <DetailItem label="Nationality" value={user.nationality} icon={Globe} />
+        <DetailItem label="Date of Birth" value={new Date(user.dob).toLocaleDateString()} />
+        <DetailItem label="Occupation" value={user.occupation} />
+        <DetailItem label="Nationality" value={user.nationality} />
       </CardContent>
     </Card>
     <Card>
@@ -171,9 +170,9 @@ const EOIDetails = ({ eoi }) => (
       <CardContent className="space-y-4">
         <DetailItem label="Full Name" value={eoi.name} />
         <DetailItem label="Father's Name" value={eoi.father_name} />
-        <DetailItem label="Date of Birth" value={new Date(eoi.dob).toLocaleDateString()} icon={Cake} />
-        <DetailItem label="Occupation" value={eoi.occupation} icon={Briefcase} />
-        <DetailItem label="Nationality" value={eoi.nationality} icon={Globe} />
+        <DetailItem label="Date of Birth" value={new Date(eoi.dob).toLocaleDateString()} />
+        <DetailItem label="Occupation" value={eoi.occupation} />
+        <DetailItem label="Nationality" value={eoi.nationality} />
       </CardContent>
     </Card>
     <Card>
@@ -236,36 +235,76 @@ const CompanyDetails = ({ company }) => (
   </div>
 );
 
-const ApplicationDetailsDialog = ({ application }) => {
+// REFACTORED: This component now only renders the content inside the dialog
+const ApplicationDetailsContent = ({ application }) => {
   const isIndividual = application.draft_type === 0;
   const isCompany = application.draft_type === 1;
   const isEOI = application.draft_type === 3;
 
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <button className="p-2 hover:bg-gray-100 rounded-md transition-colors">
-          <Eye className="h-4 w-4 text-gray-600" />
-        </button>
-      </DialogTrigger>
-      <DialogContent className="max-w-4xl bg-white max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={application.displayImage} alt={application.displayName} />
-              <AvatarFallback>{application.displayName?.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-            </Avatar>
-            Application Details - {application.displayName}
-          </DialogTitle>
-        </DialogHeader>
-        
-        {isIndividual && <IndividualDetails user={application} />}
-        {isCompany && <CompanyDetails company={application} />}
-        {isEOI && <EOIDetails eoi={application} />}
-      </DialogContent>
-    </Dialog>
+    <div>
+      <DialogHeader>
+        <DialogTitle className="flex items-center gap-3">
+          <Avatar className="h-10 w-10">
+            <AvatarImage src={application.displayImage} alt={application.displayName} />
+            <AvatarFallback>{application.displayName?.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+          </Avatar>
+          Application Details - {application.displayName}
+        </DialogTitle>
+      </DialogHeader>
+      
+      {isIndividual && <IndividualDetails user={application} />}
+      {isCompany && <CompanyDetails company={application} />}
+      {isEOI && <EOIDetails eoi={application} />}
+    </div>
   );
 };
+
+// NEW: Card component for mobile view
+const ApplicationCard = ({ application }) => (
+  <Card className="shadow-sm">
+    <CardHeader>
+      <div className="flex justify-between items-start">
+        <div className="flex items-center gap-3">
+          <Avatar className="h-10 w-10">
+            <AvatarImage src={application.displayImage} alt={application.displayName} />
+            <AvatarFallback>{application.displayName?.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+          </Avatar>
+          <div>
+            <CardTitle className="text-base">{application.displayName}</CardTitle>
+            <p className="text-sm text-gray-500 font-mono">{application.ticket_id}</p>
+          </div>
+        </div>
+        <StatusBadge status={application.status} />
+      </div>
+    </CardHeader>
+    <CardContent className="space-y-4 text-sm">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+            <div><span className="font-medium text-gray-600">Project:</span> {application.project}</div>
+            <div><span className="font-medium text-gray-600">Type:</span> {application.type}</div>
+            <div><span className="font-medium text-gray-600">Draw:</span> {application.draw_name || 'N/A'}</div>
+            <div><span className="font-medium text-gray-600">Plan:</span> {application.payment_plan}</div>
+        </div>
+        <div className="pt-2 border-t">
+            <p className="font-medium text-gray-600">Opening Date</p>
+            <p>{formatDate(application.opening_date)}</p>
+        </div>
+    </CardContent>
+    <CardFooter className="flex justify-end bg-gray-50/50 p-3">
+       <Dialog>
+        <DialogTrigger asChild>
+          <Button variant="outline" size="sm" className="flex items-center gap-2">
+            <Eye className="h-4 w-4" /> View Details
+          </Button>
+        </DialogTrigger>
+        {/* UPDATED: Dialog content is now responsive and larger */}
+        <DialogContent className="w-full max-w-[95vw] lg:max-w-6xl max-h-[90vh] overflow-y-auto bg-white">
+          <ApplicationDetailsContent application={application} />
+        </DialogContent>
+      </Dialog>
+    </CardFooter>
+  </Card>
+);
 
 const MyApplication = () => {
   const [applications, setApplications] = useState([]);
@@ -287,7 +326,6 @@ const MyApplication = () => {
         });
         const rawData = res.data.data.rows;
 
-        // Standardize data for easier use in the component
         const processedData = rawData.map(item => {
           const isIndividual = item.draft_type === 0;
           const isCompany = item.draft_type === 1;
@@ -324,13 +362,12 @@ const MyApplication = () => {
         console.error("Failed to fetch draft applications:", error);
       }
     };
-    getdata();
-  }, []);
+    if (userdata?.user_id) getdata();
+  }, [userdata?.user_id]);
 
   const projects = useMemo(() => [...new Set(applications.map(app => app.project))], [applications]);
   const types = useMemo(() => [...new Set(applications.map(app => app.type))], [applications]);
 
-  // Helper function to check if two dates are the same day
   const isSameDay = (date1, date2) => {
     if (!date1 || !date2) return false;
     const d1 = new Date(date1);
@@ -364,7 +401,7 @@ const MyApplication = () => {
   }, [searchTerm, statusFilter, projectFilter, typeFilter, selectedDate]);
 
   return (
-    <div className="w-full space-y-4 p-6 bg-gray-50/50 min-h-screen">
+    <div className="w-full space-y-4 p-4 md:p-6 bg-gray-50/50 overflow-y-scroll max-h-screen">
       <div className="flex flex-col gap-4">
         <h1 className="text-2xl font-bold">Application Management</h1>
         
@@ -372,7 +409,7 @@ const MyApplication = () => {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="Search by name, ticket ID, project, or draw name..."
+              placeholder="Search by name, ticket ID, project..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
@@ -381,7 +418,7 @@ const MyApplication = () => {
           
           <div className="flex gap-2 flex-wrap">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-full sm:w-40">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent className="bg-white">
@@ -393,7 +430,7 @@ const MyApplication = () => {
             </Select>
             
             <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-full sm:w-40">
                 <SelectValue placeholder="Filter by type" />
               </SelectTrigger>
               <SelectContent className="bg-white">
@@ -405,7 +442,7 @@ const MyApplication = () => {
             </Select>
             
             <Select value={projectFilter} onValueChange={setProjectFilter}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-full sm:w-48">
                 <SelectValue placeholder="Filter by project" />
               </SelectTrigger>
               <SelectContent className="bg-white">
@@ -416,23 +453,18 @@ const MyApplication = () => {
               </SelectContent>
             </Select>
 
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-gray-400" />
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <Input
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-40"
+                className="flex-grow"
                 placeholder="Select date"
               />
               {selectedDate && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSelectedDate('')}
-                  className="px-2"
-                >
-                  Clear
+                <Button variant="ghost" size="icon" onClick={() => setSelectedDate('')}>
+                  {/* UPDATED: Changed icon from Image to X */}
+                  <X className="h-4 w-4" />
                 </Button>
               )}
             </div>
@@ -444,7 +476,15 @@ const MyApplication = () => {
         </div>
       </div>
 
-      <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
+      {/* Mobile View: Cards */}
+      <div className="space-y-4 md:hidden">
+        {paginatedApplications.map((app) => (
+          <ApplicationCard key={app.id} application={app} />
+        ))}
+      </div>
+
+      {/* Desktop View: Table */}
+      <div className="hidden md:block border rounded-lg overflow-x-auto bg-white shadow-sm">
         <Table>
           <TableHeader className="bg-gray-50">
             <TableRow>
@@ -494,7 +534,17 @@ const MyApplication = () => {
                   <StatusBadge status={app.status} />
                 </TableCell>
                 <TableCell>
-                  <ApplicationDetailsDialog application={app} />
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <button className="p-2 hover:bg-gray-100 rounded-md transition-colors">
+                        <Eye className="h-4 w-4 text-gray-600" />
+                      </button>
+                    </DialogTrigger>
+                    {/* UPDATED: Dialog content is now responsive and larger */}
+                    <DialogContent className="w-full max-w-[95vw] lg:max-w-6xl max-h-[90vh] overflow-y-auto bg-white">
+                      <ApplicationDetailsContent application={app} />
+                    </DialogContent>
+                  </Dialog>
                 </TableCell>
               </TableRow>
             ))}

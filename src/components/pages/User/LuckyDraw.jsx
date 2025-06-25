@@ -129,7 +129,7 @@ const LuckyDraw = () => {
   }
 
   return (
-    <div className="w-full h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-rose-50 p-2 md:p-4 flex flex-col">
+    <div className="w-full max-h-screen overflow-y-scroll overflow-x-hidden bg-gradient-to-br from-purple-50 via-pink-50 to-rose-50 p-2 md:p-4 flex flex-col">
       <div className="w-full max-w-7xl mx-auto flex flex-col h-full">
         
         {/* Header */}

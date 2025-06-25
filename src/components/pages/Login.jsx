@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Phone, ArrowLeft, Shield, CheckCircle2, AlertCircle, Watch } from 'lucide-react';
 import { axiosInstance } from '../baseurl/axiosInstance';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 // Particle System Component
 const ParticleSystem = ({ density = 30, speed = 0.3, color = 'rgba(255, 255, 255, 0.1)' }) => {
@@ -512,6 +512,7 @@ console.log(res.data.status)
                   </motion.div>
 
                   <div className="text-center">
+                    <p>Not registerd? <Link className='text-white underline' to={'/register'}>Register</Link></p>
                     <p className="text-gray-400 text-sm">
                       By continuing, you agree to our Terms of Service and Privacy Policy
                     </p>

@@ -383,8 +383,8 @@ export default function FillDraw() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br max-w-screen from-blue-50 to-indigo-100 p-4">
-      <div className="w-full mx-auto">
+    <div className="max-h-screen  overflow-y-scroll bg-gradient-to-br max-w-screen from-blue-50 to-indigo-100 ">
+      <div className="w-full h-full">
         <Card className="shadow-2xl border-0 bg-white/95 backdrop-blur-sm">
           <CardHeader className="text-center pb-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg">
             <CardTitle className="text-3xl font-bold flex items-center justify-center gap-3"><FileText className="h-8 w-8" />Lucky Draw & EOI Form</CardTitle>

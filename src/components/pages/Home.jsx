@@ -251,7 +251,6 @@ const NavLink = ({ children, href }) => (
 );
 
 const Header = ({isauth}) => (
-
   <motion.header 
     initial={{ y: -100, opacity: 0 }}
     animate={{ y: 0, opacity: 1 }}
@@ -275,21 +274,36 @@ const Header = ({isauth}) => (
         <NavLink href="#blog">Blog</NavLink>
         <NavLink href="#contact">Contact</NavLink>
       </nav>
-        {!isauth &&
-      <div className="flex items-center gap-2 md:gap-4">
-        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Link to={'/login'}>
-          <Button  variant="outline" className="border-indigo-600 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700">Login</Button>
-            </Link>
-        </motion.div>
-        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Link to={'/register'}>
-          <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg">Register</Button>
-            </Link>
-        </motion.div>
-      </div>
-       }
 
+      {/* Auth buttons for unauthenticated users, and mobile dashboard button for authenticated users */}
+      <div className="flex items-center gap-2 md:gap-4">
+        {!isauth && (
+          <>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Link to={'/login'}>
+                <Button variant="outline" className="border-indigo-600 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700">Login</Button>
+              </Link>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Link to={'/register'}>
+                <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg">Register</Button>
+              </Link>
+            </motion.div>
+          </>
+        )}
+        
+        {isauth && (
+          <div className="md:hidden"> {/* This wrapper ensures the button only shows on small screens */}
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Link to="/dashboard-user">
+                <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg">
+                  Dashboard
+                </Button>
+              </Link>
+            </motion.div>
+          </div>
+        )}
+      </div>
     </div>
   </motion.header>
 );
@@ -380,6 +394,7 @@ const HeroSection = () => {
                 whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(99, 102, 241, 0.3)" }} 
                 whileTap={{ scale: 0.95 }}
               >
+                
                 <Button size="lg" className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-lg px-8 py-6 rounded-full shadow-2xl border border-white/20">
                   Explore Properties
                   <motion.div
