@@ -51,24 +51,11 @@ function App() {
           <main>
               <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<SignupPage />} />
+
             
-            {/* Public routes with auth redirect */}
-            <Route 
-                path="/login" 
-                element={
-                    <AuthRedirect>
-                        <LoginPage />
-                    </AuthRedirect>
-                } 
-            />
-            <Route 
-                path="/register" 
-                element={
-                    <AuthRedirect>
-                        <SignupPage />
-                    </AuthRedirect>
-                } 
-            />
+           
             
             {/* Protected routes */}
             <Route element={<ProtectedRoutes />}>
@@ -85,21 +72,5 @@ function App() {
   );
 }
 
-const AuthRedirect = ({ children }) => {
-    const token = localStorage.getItem("isAuthenticated");
-    const userdata = JSON.parse(localStorage.getItem("userdata") || "{}");
-    
-    // If user is already logged in, redirect to appropriate dashboard
-    if (token) {
-        // Assuming you have user role information
-        if (userdata.role == 1) {
-            return <Navigate to="/dashboard-admin" replace />;
-        } else {
-            return <Navigate to="/dashboard-user" replace />;
-        }
-    }
-    
-    return children;
-};
 
 export default App;

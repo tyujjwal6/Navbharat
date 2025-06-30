@@ -1,10 +1,9 @@
 // Option 1: Allow authenticated users to access login/register (redirect to dashboard)
 import React from 'react';
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 
 const ProtectedRoutes = () => {
     const token = localStorage.getItem("isAuthenticated");
-    const location = useLocation();
 
     // If no token, redirect to login
     if (!token) {
