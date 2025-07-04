@@ -8,58 +8,80 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
-import { MapPin, Wallet, Search, Phone, Mail, Facebook, Twitter, Instagram, Linkedin, CheckCircle2, Landmark, Users, Briefcase, Calendar, Youtube, ArrowRight, Clock, User } from 'lucide-react';
+import { MapPin, Wallet, Search, Phone, Mail, Facebook, Twitter, Instagram, Linkedin, CheckCircle2, Landmark, Users, Briefcase, Calendar, Youtube, ArrowRight, Clock, User, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import logo from '../../assets/logo.png'
+import { axiosInstance } from '../baseurl/axiosInstance';
 
-// --- DUMMY DATA ---
-const allProjectsData = [
-  { id: 1, name: 'Skyline Residences', location: 'New York', budget: '500k-1M', image: 'https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1', type: 'Apartment' },
-  { id: 2, name: 'Oceanview Villas', location: 'Miami', budget: '1M-2M', image: 'https://images.pexels.com/photos/1396122/pexels-photo-1396122.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1', type: 'Villa' },
-  { id: 3, name: 'The Grand Lofts', location: 'Chicago', budget: '500k-1M', image: 'https://images.pexels.com/photos/259588/pexels-photo-259588.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1', type: 'Loft' },
-  { id: 4, name: 'Sunset Apartments', location: 'Los Angeles', budget: '2M+', image: 'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1', type: 'Apartment' },
-  { id: 5, name: 'Metropolitan Tower', location: 'New York', budget: '2M+', image: 'https://images.pexels.com/photos/164558/pexels-photo-164558.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1', type: 'Penthouse' },
-  { id: 6, name: 'Lakeside Homes', location: 'Chicago', budget: '1M-2M', image: 'https://images.pexels.com/photos/1115804/pexels-photo-1115804.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1', type: 'House' },
-];
-
-const ongoingProjectsData = [
-  { id: 7, name: 'Emerald Greens', location: 'Austin', status: 'Under Construction', image: 'https://images.pexels.com/photos/221540/pexels-photo-221540.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1' },
-  { id: 8, name: 'Pinnacle Point', location: 'Denver', status: 'Nearing Completion', image: 'https://images.pexels.com/photos/209315/pexels-photo-209315.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1' },
-  { id: 9, name: 'Bayside Condos', location: 'San Diego', status: 'Foundation Laid', image: 'https://images.pexels.com/photos/210617/pexels-photo-210617.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1' },
-];
-
-const blogPosts = [
-  {
-    id: 1,
-    title: "10 Tips for First-Time Home Buyers in 2025",
-    excerpt: "Navigate the real estate market with confidence using these expert tips designed for newcomers to home buying.",
-    image: "https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-    author: "Sarah Johnson",
-    date: "June 8, 2025",
-    readTime: "5 min read",
-    category: "Buying Guide"
-  },
-  {
-    id: 2,
-    title: "The Future of Smart Homes: Technology Trends",
-    excerpt: "Explore how cutting-edge technology is transforming modern living spaces and what to expect in the coming years.",
-    image: "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-    author: "Michael Chen",
-    date: "June 5, 2025",
-    readTime: "7 min read",
-    category: "Technology"
-  },
-  {
-    id: 3,
-    title: "Investment Opportunities in Emerging Markets",
-    excerpt: "Discover lucrative real estate investment opportunities in up-and-coming neighborhoods and cities.",
-    image: "https://images.pexels.com/photos/3184339/pexels-photo-3184339.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-    author: "David Rodriguez",
-    date: "June 3, 2025",
-    readTime: "6 min read",
-    category: "Investment"
+// --- API DATA TRANSFORMATION ---
+const transformApiToProjectData = (apiSite) => {
+  // Create budget range based on draw_charges
+  const drawCharges = apiSite.draw_charges || 0;
+  let budget;
+  if (drawCharges <= 500000) {
+    budget = 'Under 5L';
+  } else if (drawCharges <= 1000000) {
+    budget = '5L-10L';
+  } else if (drawCharges <= 2000000) {
+    budget = '10L-20L';
+  } else {
+    budget = '20L+';
   }
-];
+
+  // Determine property type based on plot sizes or preferences
+  let type = 'Plot';
+  if (apiSite.prefer && apiSite.prefer.length > 0) {
+    const preferences = apiSite.prefer.join(' ').toLowerCase();
+    if (preferences.includes('apartment') || preferences.includes('flat')) {
+      type = 'Apartment';
+    } else if (preferences.includes('villa')) {
+      type = 'Villa';
+    } else if (preferences.includes('house')) {
+      type = 'House';
+    } else if (preferences.includes('commercial')) {
+      type = 'Commercial';
+    }
+  }
+
+  return {
+    id: apiSite.pro_id,
+    name: apiSite.name,
+    location: `${apiSite.city}, ${apiSite.state}`,
+    budget: budget,
+    image: apiSite.image || 'https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
+    type: type,
+    status: apiSite.status,
+    drawCharges: apiSite.draw_charges,
+    city: apiSite.city,
+    state: apiSite.state,
+    units: apiSite.units,
+    description: apiSite.des,
+    paymentPlan: apiSite.payment_plan || [],
+    plotSizes: apiSite.plot_sizes || [],
+    preferences: apiSite.prefer || [],
+    youtubeLink: apiSite.yout_link
+  };
+};
+
+const transformApiBlogData = (apiBlog) => {
+  return {
+    id: apiBlog.blog_id,
+    title: apiBlog.title,
+    excerpt: apiBlog.subheading,
+    image: apiBlog.image || 'https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
+    author: apiBlog.posted_by,
+    date: new Date(apiBlog.posted_at).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    }),
+    readTime: `${apiBlog.min_read} min read`,
+    category: apiBlog.category,
+    description: apiBlog.description,
+    hashtags: apiBlog.hashtags || [],
+    location: apiBlog.location
+  };
+};
 
 // --- PARTICLE SYSTEM COMPONENT ---
 const ParticleSystem = ({ density = 50, speed = 0.5, color = 'rgba(99, 102, 241, 0.1)' }) => {
@@ -197,18 +219,112 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState('');
   const [location, setLocation] = useState('');
   const [budget, setBudget] = useState('');
+  
+  // API State
+  const [allProjectsData, setAllProjectsData] = useState([]);
+  const [ongoingProjectsData, setOngoingProjectsData] = useState([]);
+  const [blogPosts, setBlogPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [blogLoading, setBlogLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const filteredProjects = allProjectsData.filter(project =>
-    project.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-    (location === '' || location === 'all' || project.location === location) &&
-    (budget === '' || budget === 'all' || project.budget === budget)
-  );
+  // Fetch projects data from API
+  const fetchProjects = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await axiosInstance.get("/sites");
+      const apiSites = response.data?.data?.rows || [];
+      
+      // Transform API data
+      const transformedProjects = apiSites.map(transformApiToProjectData);
+      
+      // Set all projects
+      setAllProjectsData(transformedProjects);
+      
+      // Filter ongoing projects (status: 'ongoing' or 'upcoming')
+      const ongoingProjects = transformedProjects
+        .filter(project => project.status === 'ongoing' || project.status === 'upcoming')
+        .map(project => ({
+          id: project.id,
+          name: project.name,
+          location: project.location,
+          status: project.status === 'ongoing' ? 'Under Construction' : 
+                  project.status === 'upcoming' ? 'Upcoming Launch' : 'In Progress',
+          image: project.image
+        }));
+      
+      setOngoingProjectsData(ongoingProjects);
+      
+    } catch (error) {
+      console.error("Failed to fetch projects:", error);
+      setError("Failed to load projects. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch blogs data from API
+  const fetchBlogs = async () => {
+    setBlogLoading(true);
+    try {
+      const response = await axiosInstance.get("/blog");
+      const apiBlogs = response.data?.data?.rows || [];
+      
+      // Transform API data and get latest 3 blogs
+      const transformedBlogs = apiBlogs
+        .map(transformApiBlogData)
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .slice(0, 3);
+      
+      setBlogPosts(transformedBlogs);
+      
+    } catch (error) {
+      console.error("Failed to fetch blogs:", error);
+      // Keep empty array on error, component will handle gracefully
+    } finally {
+      setBlogLoading(false);
+    }
+  };
+
+  // Fetch data on component mount
+  useEffect(() => {
+    fetchProjects();
+    fetchBlogs();
+  }, []);
+
+  // Filter projects based on search criteria
+  const filteredProjects = allProjectsData.filter(project => {
+    const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesLocation = location === '' || location === 'all' || 
+                           project.city === location || project.state === location;
+    const matchesBudget = budget === '' || budget === 'all' || project.budget === budget;
+    
+    return matchesSearch && matchesLocation && matchesBudget;
+  });
+
+  // Get unique locations for filter dropdown
+  const uniqueLocations = [...new Set(allProjectsData.flatMap(project => [project.city, project.state]))];
 
   const isauth = localStorage.getItem("isAuthenticated");
 
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Something went wrong</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <Button onClick={fetchProjects} className="bg-indigo-600 hover:bg-indigo-700">
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white text-gray-800 font-sans">
-      <Header isauth ={isauth} />
+      <Header isauth={isauth} />
       <main>
         <HeroSection />
         <AboutUsSection />
@@ -220,9 +336,17 @@ export default function Home() {
           budget={budget}
           setBudget={setBudget}
           filteredProjects={filteredProjects}
+          uniqueLocations={uniqueLocations}
+          loading={loading}
         />
-        <OngoingProjectsSection />
-        <BlogSection />
+        <OngoingProjectsSection 
+          ongoingProjectsData={ongoingProjectsData}
+          loading={loading}
+        />
+        <BlogSection 
+          blogPosts={blogPosts}
+          loading={blogLoading}
+        />
         <StatsSection />
       </main>
       <Footer />
@@ -275,7 +399,6 @@ const Header = ({isauth}) => (
         <NavLink href="#contact">Contact</NavLink>
       </nav>
 
-      {/* Auth buttons for unauthenticated users, and mobile dashboard button for authenticated users */}
       <div className="flex items-center gap-2 md:gap-4">
         {!isauth && (
           <>
@@ -293,7 +416,7 @@ const Header = ({isauth}) => (
         )}
         
         {isauth && (
-          <div className="md:hidden"> {/* This wrapper ensures the button only shows on small screens */}
+          <div className="md:hidden">
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Link to="/dashboard-user">
                 <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg">
@@ -394,7 +517,6 @@ const HeroSection = () => {
                 whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(99, 102, 241, 0.3)" }} 
                 whileTap={{ scale: 0.95 }}
               >
-                
                 <Button size="lg" className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-lg px-8 py-6 rounded-full shadow-2xl border border-white/20">
                   Explore Properties
                   <motion.div
@@ -496,7 +618,7 @@ const AboutUsSection = () => (
 );
 
 // --- ALL PROJECTS SECTION ---
-const AllProjectsSection = ({ searchTerm, setSearchTerm, location, setLocation, budget, setBudget, filteredProjects }) => {
+const AllProjectsSection = ({ searchTerm, setSearchTerm, location, setLocation, budget, setBudget, filteredProjects, uniqueLocations, loading }) => {
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
@@ -548,27 +670,29 @@ const AllProjectsSection = ({ searchTerm, setSearchTerm, location, setLocation, 
               <div>
                 <Select onValueChange={setLocation} value={location}>
                   <SelectTrigger className="h-12 border-indigo-200 focus:border-indigo-500">
-                    <MapPin className="inline-block mr-2 text-indigo-400"/>Location
+                    <MapPin className="inline-block mr-2 text-indigo-400"/>
+                    <SelectValue placeholder="All Locations" />
                   </SelectTrigger>
                   <SelectContent className="bg-white">
                     <SelectItem value="all">All Locations</SelectItem>
-                    <SelectItem value="New York">New York</SelectItem>
-                    <SelectItem value="Miami">Miami</SelectItem>
-                    <SelectItem value="Chicago">Chicago</SelectItem>
-                    <SelectItem value="Los Angeles">Los Angeles</SelectItem>
+                    {uniqueLocations.map(loc => (
+                      <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
               <div>
                 <Select onValueChange={setBudget} value={budget}>
                   <SelectTrigger className="h-12 border-indigo-200 focus:border-indigo-500">
-                    <Wallet className="inline-block mr-2 text-indigo-400"/>Budget
+                    <Wallet className="inline-block mr-2 text-indigo-400"/>
+                    <SelectValue placeholder="All Budgets" />
                   </SelectTrigger>
                   <SelectContent className="bg-white">
                     <SelectItem value="all">All Budgets</SelectItem>
-                    <SelectItem value="500k-1M">$500k - $1M</SelectItem>
-                    <SelectItem value="1M-2M">$1M - $2M</SelectItem>
-                    <SelectItem value="2M+">$2M+</SelectItem>
+                    <SelectItem value="Under 5L">Under ₹5L</SelectItem>
+                    <SelectItem value="5L-10L">₹5L - ₹10L</SelectItem>
+                    <SelectItem value="10L-20L">₹10L - ₹20L</SelectItem>
+                    <SelectItem value="20L+">₹20L+</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -581,73 +705,80 @@ const AllProjectsSection = ({ searchTerm, setSearchTerm, location, setLocation, 
           </Card>
         </motion.div>
 
-        <motion.div variants={containerVariants} initial="hidden" animate="visible" className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredProjects.length > 0 ? (
-            filteredProjects.map((project, index) => (
-              <motion.div 
-                key={project.id} 
-                variants={itemVariants} 
-                whileHover={{ y: -12, scale: 1.03, rotateY: 2 }} 
-                transition={{ type: "spring", stiffness: 300 }}
-                className="relative"
-              >
-                <motion.div
-                  className="absolute -inset-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl opacity-0 blur-lg"
-                  whileHover={{ opacity: 0.2 }}
-                  transition={{ duration: 0.3 }}
-                />
-                <Card className="overflow-hidden h-full flex flex-col group shadow-xl hover:shadow-2xl transition-all duration-500 border-0 relative z-10 bg-white/90 backdrop-blur-sm">
-                  <div className="relative overflow-hidden">
-                    <motion.img 
-                      src={project.image} 
-                      alt={project.name} 
-                      className="w-full h-56 object-cover transition-transform duration-500" 
-                      whileHover={{ scale: 1.1 }}
-                    />
-                    <div className="absolute top-2 right-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
-                      {project.type}
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-indigo-600 mr-2" />
+            <span className="text-gray-600">Loading projects...</span>
+          </div>
+        ) : (
+          <motion.div variants={containerVariants} initial="hidden" animate="visible" className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredProjects.length > 0 ? (
+              filteredProjects.map((project, index) => (
+                <motion.div 
+                  key={project.id} 
+                  variants={itemVariants} 
+                  whileHover={{ y: -12, scale: 1.03, rotateY: 2 }} 
+                  transition={{ type: "spring", stiffness: 300 }}
+                  className="relative"
+                >
+                  <motion.div
+                    className="absolute -inset-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl opacity-0 blur-lg"
+                    whileHover={{ opacity: 0.2 }}
+                    transition={{ duration: 0.3 }}
+                  />
+                  <Card className="overflow-hidden h-full flex flex-col group shadow-xl hover:shadow-2xl transition-all duration-500 border-0 relative z-10 bg-white/90 backdrop-blur-sm">
+                    <div className="relative overflow-hidden">
+                      <motion.img 
+                        src={project.image} 
+                        alt={project.name} 
+                        className="w-full h-56 object-cover transition-transform duration-500" 
+                        whileHover={{ scale: 1.1 }}
+                      />
+                      <div className="absolute top-2 right-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+                        {project.type}
+                      </div>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     </div>
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  </div>
-                  <CardHeader>
-                    <CardTitle className="text-xl font-semibold group-hover:text-indigo-600 transition-colors">
-                      {project.name}
-                    </CardTitle>
-                    <CardDescription className="flex items-center text-gray-500 pt-1">
-                      <MapPin className="h-4 w-4 mr-2 text-indigo-400" /> {project.location}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex-grow flex flex-col justify-end">
-                    <p className="text-lg font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-4">
-                      {project.budget}
-                    </p>
-                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                      <Button variant="outline" className="w-full border-indigo-600 text-indigo-600 hover:bg-gradient-to-r hover:from-indigo-600 hover:to-purple-600 hover:text-white transition-all duration-300">
-                        View Details
-                      </Button>
-                    </motion.div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))
-          ) : (
-            <motion.p 
-              className="md:col-span-3 text-gray-500 text-lg"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5 }}
-            >
-              No projects match your criteria.
-            </motion.p>
-          )}
-        </motion.div>
+                    <CardHeader>
+                      <CardTitle className="text-xl font-semibold group-hover:text-indigo-600 transition-colors">
+                        {project.name}
+                      </CardTitle>
+                      <CardDescription className="flex items-center text-gray-500 pt-1">
+                        <MapPin className="h-4 w-4 mr-2 text-indigo-400" /> {project.location}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex-grow flex flex-col justify-end">
+                      <p className="text-lg font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-4">
+                        {project.budget}
+                      </p>
+                      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <Button variant="outline" className="w-full border-indigo-600 text-indigo-600 hover:bg-gradient-to-r hover:from-indigo-600 hover:to-purple-600 hover:text-white transition-all duration-300">
+                          View Details
+                        </Button>
+                      </motion.div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))
+            ) : (
+              <motion.p 
+                className="md:col-span-3 text-gray-500 text-lg"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5 }}
+              >
+                No projects match your criteria.
+              </motion.p>
+            )}
+          </motion.div>
+        )}
       </div>
     </AnimatedSection>
   );
 };
 
 // --- ONGOING PROJECTS SECTION ---
-const OngoingProjectsSection = () => (
+const OngoingProjectsSection = ({ ongoingProjectsData, loading }) => (
   <AnimatedSection className="bg-gradient-to-br from-indigo-50 to-purple-50" withParticles={true}>
     <div className="container mx-auto text-center">
       <motion.h2 
@@ -666,56 +797,66 @@ const OngoingProjectsSection = () => (
       >
         Get a glimpse into the future of living. These properties are currently under development.
       </motion.p>
-      <div className="grid md:grid-cols-3 gap-8">
-        {ongoingProjectsData.map((project, i) => (
-          <motion.div
-            key={project.id}
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: i * 0.2, type: "spring" }}
-            whileHover={{ y: -12, scale: 1.03, rotateX: 5 }}
-            className="relative group"
-          >
+      
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-indigo-600 mr-2" />
+          <span className="text-gray-600">Loading ongoing projects...</span>
+        </div>
+      ) : ongoingProjectsData.length === 0 ? (
+        <p className="text-gray-500 text-lg">No ongoing projects at the moment.</p>
+      ) : (
+        <div className="grid md:grid-cols-3 gap-8">
+          {ongoingProjectsData.map((project, i) => (
             <motion.div
-              className="absolute -inset-3 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl opacity-0 blur-lg"
-              whileHover={{ opacity: 0.2 }}
-              transition={{ duration: 0.3 }}
-            />
-            <Card className="overflow-hidden hover:shadow-2xl transition-all duration-500 h-full bg-white/90 backdrop-blur-sm border-0 relative z-10">
-              <div className="relative overflow-hidden">
-                <motion.img 
-                  src={project.image} 
-                  alt={project.name} 
-                  className="w-full h-56 object-cover transition-transform duration-500" 
-                  whileHover={{ scale: 1.1 }}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              </div>
-              <CardContent className="p-6 text-left">
-                <h3 className="text-xl font-bold mb-2 group-hover:text-indigo-600 transition-colors">
-                  {project.name}
-                </h3>
-                <p className="text-gray-500 mb-3 flex items-center">
-                  <MapPin size={16} className="mr-2 text-indigo-400"/>{project.location}
-                </p>
-                <motion.span 
-                  className="inline-block bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-lg"
-                  whileHover={{ scale: 1.1 }}
-                >
-                  {project.status}
-                </motion.span>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
-      </div>
+              key={project.id}
+              initial={{ opacity: 0, y: 50 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: i * 0.2, type: "spring" }}
+              whileHover={{ y: -12, scale: 1.03, rotateX: 5 }}
+              className="relative group"
+            >
+              <motion.div
+                className="absolute -inset-3 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl opacity-0 blur-lg"
+                whileHover={{ opacity: 0.2 }}
+                transition={{ duration: 0.3 }}
+              />
+              <Card className="overflow-hidden hover:shadow-2xl transition-all duration-500 h-full bg-white/90 backdrop-blur-sm border-0 relative z-10">
+                <div className="relative overflow-hidden">
+                  <motion.img 
+                    src={project.image} 
+                    alt={project.name} 
+                    className="w-full h-56 object-cover transition-transform duration-500" 
+                    whileHover={{ scale: 1.1 }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                </div>
+                <CardContent className="p-6 text-left">
+                  <h3 className="text-xl font-bold mb-2 group-hover:text-indigo-600 transition-colors">
+                    {project.name}
+                  </h3>
+                  <p className="text-gray-500 mb-3 flex items-center">
+                    <MapPin size={16} className="mr-2 text-indigo-400"/>{project.location}
+                  </p>
+                  <motion.span 
+                    className="inline-block bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-lg"
+                    whileHover={{ scale: 1.1 }}
+                  >
+                    {project.status}
+                  </motion.span>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      )}
     </div>
   </AnimatedSection>
 );
 
 // --- BLOG SECTION ---
-const BlogSection = () => (
+const BlogSection = ({ blogPosts, loading }) => (
   <AnimatedSection id="blog" className="bg-white" withParticles={true} withShapes={true}>
     <div className="container mx-auto">
       <div className="text-center mb-12">
@@ -737,97 +878,110 @@ const BlogSection = () => (
         </motion.p>
       </div>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-        {blogPosts.map((post, index) => (
-          <motion.div
-            key={post.id}
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: index * 0.2 }}
-            whileHover={{ y: -10, scale: 1.02 }}
-            className="relative group"
-          >
-            <motion.div
-              className="absolute -inset-3 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl opacity-0 blur-lg"
-              whileHover={{ opacity: 0.15 }}
-              transition={{ duration: 0.3 }}
-            />
-            <Card className="overflow-hidden h-full shadow-lg hover:shadow-2xl transition-all duration-500 border-0 bg-white/90 backdrop-blur-sm relative z-10">
-              <div className="relative overflow-hidden">
-                <motion.img
-                  src={post.image}
-                  alt={post.title}
-                  className="w-full h-48 object-cover transition-transform duration-500"
-                  whileHover={{ scale: 1.1 }}
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-indigo-600 mr-2" />
+          <span className="text-gray-600">Loading blog posts...</span>
+        </div>
+      ) : blogPosts.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-gray-500 text-lg">No blog posts available at the moment.</p>
+        </div>
+      ) : (
+        <>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+            {blogPosts.map((post, index) => (
+              <motion.div
+                key={post.id}
+                initial={{ opacity: 0, y: 50 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: index * 0.2 }}
+                whileHover={{ y: -10, scale: 1.02 }}
+                className="relative group"
+              >
+                <motion.div
+                  className="absolute -inset-3 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl opacity-0 blur-lg"
+                  whileHover={{ opacity: 0.15 }}
+                  transition={{ duration: 0.3 }}
                 />
-                <div className="absolute top-4 left-4">
-                  <span className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
-                    {post.category}
-                  </span>
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              </div>
-              
-              <CardContent className="p-6">
-                <div className="flex items-center text-sm text-gray-500 mb-3 space-x-4">
-                  <div className="flex items-center">
-                    <User size={14} className="mr-1 text-indigo-400" />
-                    {post.author}
+                <Card className="overflow-hidden h-full shadow-lg hover:shadow-2xl transition-all duration-500 border-0 bg-white/90 backdrop-blur-sm relative z-10">
+                  <div className="relative overflow-hidden">
+                    <motion.img
+                      src={post.image}
+                      alt={post.title}
+                      className="w-full h-48 object-cover transition-transform duration-500"
+                      whileHover={{ scale: 1.1 }}
+                    />
+                    <div className="absolute top-4 left-4">
+                      <span className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+                        {post.category}
+                      </span>
+                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   </div>
-                  <div className="flex items-center">
-                    <Calendar size={14} className="mr-1 text-indigo-400" />
-                    {post.date}
-                  </div>
-                  <div className="flex items-center">
-                    <Clock size={14} className="mr-1 text-indigo-400" />
-                    {post.readTime}
-                  </div>
-                </div>
-                
-                <h3 className="text-xl font-bold mb-3 group-hover:text-indigo-600 transition-colors line-clamp-2">
-                  {post.title}
-                </h3>
-                
-                <p className="text-gray-600 mb-4 line-clamp-3">
-                  {post.excerpt}
-                </p>
-                
-                <motion.div 
-                  className="flex items-center text-indigo-600 font-semibold cursor-pointer group-hover:text-purple-600 transition-colors"
-                  whileHover={{ x: 5 }}
-                >
-                  Read More 
-                  <motion.div
-                    animate={{ x: [0, 5, 0] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                    className="ml-2"
-                  >
-                    <ArrowRight size={16} />
-                  </motion.div>
-                </motion.div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
-      </div>
+                  
+                  <CardContent className="p-6">
+                    <div className="flex items-center text-sm text-gray-500 mb-3 space-x-4">
+                      <div className="flex items-center">
+                        <User size={14} className="mr-1 text-indigo-400" />
+                        {post.author}
+                      </div>
+                      <div className="flex items-center">
+                        <Calendar size={14} className="mr-1 text-indigo-400" />
+                        {post.date}
+                      </div>
+                      <div className="flex items-center">
+                        <Clock size={14} className="mr-1 text-indigo-400" />
+                        {post.readTime}
+                      </div>
+                    </div>
+                    
+                    <h3 className="text-xl font-bold mb-3 group-hover:text-indigo-600 transition-colors line-clamp-2">
+                      {post.title}
+                    </h3>
+                    
+                    <p className="text-gray-600 mb-4 line-clamp-3">
+                      {post.excerpt}
+                    </p>
+                    
+                    <motion.div 
+                      className="flex items-center text-indigo-600 font-semibold cursor-pointer group-hover:text-purple-600 transition-colors"
+                      whileHover={{ x: 5 }}
+                    >
+                      Read More 
+                      <motion.div
+                        animate={{ x: [0, 5, 0] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                        className="ml-2"
+                      >
+                        <ArrowRight size={16} />
+                      </motion.div>
+                    </motion.div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
 
-      <motion.div 
-        className="text-center"
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, delay: 0.4 }}
-      >
-        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-          <Button 
-            size="lg" 
-            className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg px-8 py-3"
+          <motion.div 
+            className="text-center"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
           >
-            View All Articles
-            <ArrowRight className="ml-2" size={20} />
-          </Button>
-        </motion.div>
-      </motion.div>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button 
+                size="lg" 
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg px-8 py-3"
+              >
+                View All Articles
+                <ArrowRight className="ml-2" size={20} />
+              </Button>
+            </motion.div>
+          </motion.div>
+        </>
+      )}
     </div>
   </AnimatedSection>
 );
