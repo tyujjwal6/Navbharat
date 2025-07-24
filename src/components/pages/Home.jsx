@@ -9,6 +9,7 @@ import RealEstatePage from './RealEstatePage';
 import EnquiryModal from './EnquiryModal';
 import OngoingProjects from './OngoingProjects';
 import About from './About';
+import Footer from './Footer';
 
 
 const customFontStyle = {
@@ -78,11 +79,11 @@ const EvergreenPage = () => {
       <div>
         <About/>
       </div>
-
-      {/* DUMMY CONTENT TO ENABLE SCROLLING */}
-      <div className="relative bg-gray-900 h-screen flex items-center justify-center">
-        <h2 className="text-4xl text-white">Scroll up to see the header reappear.</h2>
+      <div>
+        <Footer />
       </div>
+
+    
     </div>
   );
 };

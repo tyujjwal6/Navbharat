@@ -19,6 +19,7 @@ import RealEstatePage from './components/pages/RealEstatePage';
 import EnquiryModal from './components/pages/EnquiryModal';
 import OngoingProjects from './components/pages/OngoingProjects';
 import About from './components/pages/About';
+import Footer from './components/pages/Footer';
 
 function App() {
   const defaultTitle = "EverGreen Properties";
@@ -58,6 +59,7 @@ function App() {
                 <Route path="/enquiry" element={<EnquiryModal />} />
                 <Route path="/ongoing-projects" element={<OngoingProjects/>} />
                 <Route path="/about" element={<About />} />
+                <Route path="/footer" element={<Footer />} />
               </Route>
               
               <Route path='*' element={<NotFound />} />
