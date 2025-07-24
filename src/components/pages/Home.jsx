@@ -10,6 +10,7 @@ import EnquiryModal from './EnquiryModal';
 import OngoingProjects from './OngoingProjects';
 import About from './About';
 import Footer from './Footer';
+import ActionButtons from './ActionButtons';
 
 
 const customFontStyle = {
@@ -78,6 +79,9 @@ const EvergreenPage = () => {
       </div>
       <div>
         <About/>
+      </div>
+      <div>
+        <ActionButtons /> 
       </div>
       <div>
         <Footer />
