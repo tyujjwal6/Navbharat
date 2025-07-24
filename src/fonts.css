@@ -1,0 +1,21 @@
+@font-face {
+  font-family: "Katibeh";
+  src: url("/fonts/Katibeh.woff2") format("woff2"),
+       url("/fonts/Katibeh.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+
+@font-face {
+  font-family: "SF Pro Text";
+  src: url("/fonts/SFProText.woff2") format("woff2"),
+       url("/fonts/SFProText.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+
+

@@ -1,132 +1,33 @@
-
-
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Phone, ArrowLeft, Shield, CheckCircle2, AlertCircle, Watch } from 'lucide-react';
 import { axiosInstance } from '../baseurl/axiosInstance';
 import { Link, useNavigate } from 'react-router-dom';
 
-// Particle System Component
-const ParticleSystem = ({ density = 30, speed = 0.3, color = 'rgba(255, 255, 255, 0.1)' }) => {
-  const canvasRef = useRef(null);
-  const particles = useRef([]);
-  const animationRef = useRef();
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    const resizeCanvas = () => {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
-    };
-
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-
-    particles.current = Array.from({ length: density }, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      vx: (Math.random() - 0.5) * speed,
-      vy: (Math.random() - 0.5) * speed,
-      radius: Math.random() * 2 + 1,
-      opacity: Math.random() * 0.5 + 0.2
-    }));
-
-    const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      particles.current.forEach(particle => {
-        particle.x += particle.vx;
-        particle.y += particle.vy;
-
-        if (particle.x < 0 || particle.x > canvas.width) particle.vx *= -1;
-        if (particle.y < 0 || particle.y > canvas.height) particle.vy *= -1;
-
-        ctx.beginPath();
-        ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
-        ctx.fillStyle = color.replace('0.1', particle.opacity.toString());
-        ctx.fill();
-      });
-
-      animationRef.current = requestAnimationFrame(animate);
-    };
-
-    animate();
-
-    return () => {
-      window.removeEventListener('resize', resizeCanvas);
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [density, speed, color]);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      className="absolute inset-0 pointer-events-none"
-      style={{ zIndex: 1 }}
-    />
-  );
+const customFontStyle = {
+  fontFamily: "'SF Pro Text', serif", // Changed to serif for better font matching
+  fontWeight: 400, // Katibeh is typically regular weight
+  fontStyle: "normal",
 };
 
-// Floating Orbs Component
-const FloatingOrbs = () => {
-  const orbs = Array.from({ length: 8 }, (_, i) => ({
-    id: i,
-    size: Math.random() * 120 + 80,
-    delay: Math.random() * 10,
-    duration: Math.random() * 15 + 20,
-    x: Math.random() * 100,
-    y: Math.random() * 100,
-  }));
 
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 1 }}>
-      {orbs.map(orb => (
-        <motion.div
-          key={orb.id}
-          className="absolute rounded-full bg-gradient-to-br from-white/10 to-indigo-500/20 backdrop-blur-sm"
-          style={{
-            width: orb.size,
-            height: orb.size,
-            left: `${orb.x}%`,
-            top: `${orb.y}%`,
-          }}
-          animate={{
-            y: [0, -50, 0],
-            x: [0, 30, 0],
-            scale: [1, 1.2, 1],
-            opacity: [0.3, 0.6, 0.3],
-          }}
-          transition={{
-            duration: orb.duration,
-            delay: orb.delay,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-      ))}
-    </div>
-  );
-};
-
-// OTP Input Component
+// OTP Input Component (Restyled for Light Theme)
 const OTPInput = ({ length = 6, onComplete, value, onChange }) => {
   const inputRefs = useRef([]);
 
   const handleInputChange = (index, inputValue) => {
+    const numericValue = inputValue.replace(/[^0-9]/g, '');
+    if (numericValue.length > 1) return;
+
     const newValue = value.split('');
-    newValue[index] = inputValue;
+    newValue[index] = numericValue;
     const updatedValue = newValue.join('');
     onChange(updatedValue);
 
-    if (inputValue && index < length - 1) {
+    if (numericValue && index < length - 1) {
       inputRefs.current[index + 1]?.focus();
     }
 
@@ -143,7 +44,7 @@ const OTPInput = ({ length = 6, onComplete, value, onChange }) => {
 
   const handlePaste = (e) => {
     e.preventDefault();
-    const pastedText = e.clipboardData.getData('text').slice(0, length);
+    const pastedText = e.clipboardData.getData('text').replace(/[^0-9]/g, '').slice(0, length);
     onChange(pastedText);
     
     if (pastedText.length === length) {
@@ -152,7 +53,7 @@ const OTPInput = ({ length = 6, onComplete, value, onChange }) => {
   };
 
   return (
-    <div className="flex gap-3 justify-center" onPaste={handlePaste}>
+    <div  className="flex gap-2 justify-center" onPaste={handlePaste}>
       {Array.from({ length }, (_, index) => (
         <motion.div
           key={index}
@@ -162,12 +63,12 @@ const OTPInput = ({ length = 6, onComplete, value, onChange }) => {
         >
           <Input
             ref={el => inputRefs.current[index] = el}
-            type="text"
+            type="tel"
             maxLength={1}
             value={value[index] || ''}
             onChange={(e) => handleInputChange(index, e.target.value)}
             onKeyDown={(e) => handleKeyDown(index, e)}
-            className="w-12 h-12 text-center text-xl font-bold border-2 border-indigo-200 focus:border-indigo-500 rounded-lg bg-white/80 backdrop-blur-sm"
+            className="w-12 h-14 text-center text-xl font-bold border-2 border-slate-200 focus:border-slate-900 rounded-lg bg-slate-100 text-slate-900"
           />
         </motion.div>
       ))}
@@ -175,7 +76,7 @@ const OTPInput = ({ length = 6, onComplete, value, onChange }) => {
   );
 };
 
-// Timer Component
+// Timer Component (Restyled for Light Theme)
 const Timer = ({ initialTime, onComplete, isActive }) => {
   const [timeLeft, setTimeLeft] = useState(initialTime);
 
@@ -202,10 +103,10 @@ const Timer = ({ initialTime, onComplete, isActive }) => {
 
   return (
     <motion.div 
-      className="flex items-center justify-center gap-2 text-gray-600"
+      className="flex items-center justify-center gap-2 text-slate-500"
       animate={{ 
-        color: timeLeft <= 30 ? "#ef4444" : "#6b7280",
-        scale: timeLeft <= 10 ? [1, 1.1, 1] : 1
+        color: timeLeft <= 30 ? "#ef4444" : "#64748b", // slate-500
+        scale: timeLeft <= 10 ? [1, 1.05, 1] : 1
       }}
       transition={{ duration: 0.5, repeat: timeLeft <= 10 ? Infinity : 0 }}
     >
@@ -217,6 +118,7 @@ const Timer = ({ initialTime, onComplete, isActive }) => {
   );
 };
 
+
 // Main Login Component
 export default function LoginPage() {
   const [step, setStep] = useState('mobile'); // 'mobile' or 'otp'
@@ -227,150 +129,100 @@ export default function LoginPage() {
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [canResend, setCanResend] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const navigate = useNavigate();
 
+  // --- All your existing logic functions (no changes needed) ---
   const validateMobileNumber = (number) => {
-    // Remove all non-digit characters
     const cleanNumber = number.replace(/\D/g, '');
-    // Check if it's exactly 10 digits (after +91)
     return cleanNumber.length === 10 && /^[6-9]\d{9}$/.test(cleanNumber);
   };
 
   const formatMobileNumber = (number) => {
-    // Remove all non-digit characters
     const cleanNumber = number.replace(/\D/g, '');
-    // Limit to 10 digits
     return cleanNumber.slice(0, 10);
   };
 
-  const getFullMobileNumber = () => {
-    return `91${mobileNumber}`;
-  };
+  const getFullMobileNumber = () => `91${mobileNumber}`;
 
   const handleSendOTP = async () => {
     setErrors({});
-    
-    if (!mobileNumber) {
-      setErrors({ mobile: 'Mobile number is required' });
-      return;
-    }
-    
     if (!validateMobileNumber(mobileNumber)) {
       setErrors({ mobile: 'Please enter a valid 10-digit mobile number' });
       return;
     }
-
     setIsLoading(true);
-    
     try {
-      
-     const res = await axiosInstance.post('/login/send-otp',{phone:getFullMobileNumber()});
-console.log(res.data.status)
-
-      if (res.data.status ==1) {
-        setIsLoading(false);
+      const res = await axiosInstance.post('/login/send-otp', { phone: getFullMobileNumber() });
+      if (res.data.status == 1) {
         setStep('otp');
         setIsTimerActive(true);
         setCanResend(false);
-        setSuccessMessage(`OTP sent to ${getFullMobileNumber()}`);
+        setSuccessMessage(`OTP sent successfully!`);
+        setTimeout(() => setSuccessMessage(''), 4000);
       } else {
-        setIsLoading(false);
-        setErrors({ 
-          mobile:'User not Found, register first!' 
-        });
+        setErrors({ mobile: 'User not Found, please register first!' });
       }
     } catch (error) {
-      setIsLoading(false);
-      setErrors({ 
-        mobile: 'Network error. Please check your connection and try again.' 
-      });
+      setErrors({ mobile: 'Network error. Please try again.' });
       console.error('Send OTP Error:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
-  const navigate = useNavigate();
 
   const handleVerifyOTP = async (otpValue) => {
     if (otpValue.length !== 6) return;
-    
     setIsLoading(true);
-    
+    setErrors({});
     try {
-      const res = await axiosInstance.post("/login/verify-otp",{phone:getFullMobileNumber(),otp:otpValue})
-
-
-      if (res?.data?.status==1) {
-        setIsLoading(false);
-       localStorage.setItem("userdata",JSON.stringify(res?.data?.data?.rows[0]));
-       localStorage.setItem("isAuthenticated",true);
-       if(res?.data?.data?.rows[0].role==0)
-       {
-         navigate('/dashboard-user');
-       }
-       else{
-         navigate('/dashboard-admin');
-       }
-        
+      const res = await axiosInstance.post("/login/verify-otp", { phone: getFullMobileNumber(), otp: otpValue });
+      if (res?.data?.status == 1) {
+        localStorage.setItem("userdata", JSON.stringify(res?.data?.data?.rows[0]));
+        localStorage.setItem("isAuthenticated", true);
+        if (res?.data?.data?.rows[0].role == 0) {
+          navigate('/dashboard-user');
+        } else {
+          navigate('/dashboard-admin');
+        }
       } else {
-        setIsLoading(false);
-        setErrors({ 
-          otp:  'Invalid OTP. Please try again.' 
-        });
-        // Clear OTP input on error
+        setErrors({ otp: 'Invalid OTP. Please try again.' });
         setOtp('');
       }
     } catch (error) {
-      setIsLoading(false);
-      setErrors({ 
-        otp: 'Network error. Please check your connection and try again.' 
-      });
+      setErrors({ otp: 'Network error. Please try again.' });
       console.error('Verify OTP Error:', error);
-      // Clear OTP input on error
       setOtp('');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const handleResendOTP = async () => {
+    setOtp('');
+    setErrors({});
+    setIsLoading(true);
+    try {
+      // Re-using the send OTP logic for resend
+      const res = await axiosInstance.post('/login/send-otp', { phone: getFullMobileNumber() });
+      if (res.data.status == 1) {
+        setIsTimerActive(true);
+        setCanResend(false);
+        setSuccessMessage('A new OTP has been sent.');
+        setTimeout(() => setSuccessMessage(''), 4000);
+      } else {
+        setErrors({ otp: 'Failed to resend OTP. Please try again.' });
+      }
+    } catch (error) {
+      setErrors({ otp: 'Network error while resending. Please try again.' });
+      console.error('Resend OTP Error:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleTimerComplete = () => {
     setIsTimerActive(false);
     setCanResend(true);
-  };
-
-  const handleResendOTP = async () => {
-    setOtp('');
-    setIsLoading(true);
-    
-    try {
-      const response = await fetch('/api/send-otp', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          mobile: getFullMobileNumber(),
-          resend: true, // Flag to indicate this is a resend request
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        setIsLoading(false);
-        setIsTimerActive(true);
-        setCanResend(false);
-        setSuccessMessage(data.message || 'OTP resent successfully');
-        
-        setTimeout(() => setSuccessMessage(''), 3000);
-      } else {
-        setIsLoading(false);
-        setErrors({ 
-          otp: data.message || 'Failed to resend OTP. Please try again.' 
-        });
-      }
-    } catch (error) {
-      setIsLoading(false);
-      setErrors({ 
-        otp: 'Network error. Please check your connection and try again.' 
-      });
-      console.error('Resend OTP Error:', error);
-    }
   };
 
   const handleBackToMobile = () => {
@@ -389,252 +241,173 @@ console.log(res.data.status)
     if (errors.mobile) setErrors({});
   };
 
-  return (
-    <div className="min-h-screen relative overflow-hidden flex items-center justify-center">
-      {/* Background Video */}
-      <video
-        src="https://videos.pexels.com/video-files/7646757/7646757-uhd_2560_1440_25fps.mp4"
-        autoPlay
-        loop
-        muted
-        playsInline
-        className="absolute inset-0 w-full h-full object-cover z-0"
-      />
-      
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/50 to-indigo-900/70 z-10" />
-      
-      {/* Particle Effects */}
-      <ParticleSystem />
-      <FloatingOrbs />
-      
-      {/* Logo */}
-      <motion.div
-        initial={{ opacity: 0, y: -50 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1 }}
-        className="absolute top-8 left-8 z-30"
-      >
-        <img 
-          src='https://navbharatniwas.in/assets/blcklogo-CGNpodye.png' 
-          alt="Navbharat Niwas Logo" 
-          className='h-16 w-auto brightness-0 invert'
-        />
-      </motion.div>
+  const StepWrapper = ({ children, key }) => (
+    <motion.div
+      key={key}
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -30 }}
+      transition={{ duration: 0.3, ease: "easeInOut" }}
+      className="w-full"
+    >
+      {children}
+    </motion.div>
+  );
 
-      {/* Main Content */}
-      <div className="relative z-20 w-full max-w-md mx-auto px-6">
-        <AnimatePresence mode="wait">
-          {step === 'mobile' ? (
-            <motion.div
-              key="mobile-step"
-              initial={{ opacity: 0, x: -100 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 100 }}
-              transition={{ duration: 0.5, type: "spring" }}
-            >
-              <Card className="bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl">
-                <CardHeader className="text-center space-y-4">
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.2, type: "spring" }}
-                    className="mx-auto w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center"
-                  >
-                    <Phone className="h-8 w-8 text-white" />
-                  </motion.div>
-                  <CardTitle className="text-2xl font-bold text-white">
-                    Welcome Back
-                  </CardTitle>
-                  <p className="text-gray-300">
-                    Enter your mobile number to receive a verification code
-                  </p>
-                </CardHeader>
-                
-                <CardContent className="space-y-6">
+  return (
+    <div style={customFontStyle} className="min-h-screen w-full bg-white lg:grid lg:grid-cols-2">
+      {/* --- Left Panel: Form --- */}
+      <div className="flex flex-col items-center justify-center p-8 lg:p-12">
+        <div className="w-full max-w-sm">
+          {/* Logo */}
+          <div className="mb-10">
+            <img 
+              src='https://navbharatniwas.in/assets/blcklogo-CGNpodye.png' 
+              alt="Navbharat Niwas Logo" 
+              className='h-12 w-auto' // Removed invert class
+            />
+          </div>
+
+          <AnimatePresence mode="wait">
+            {step === 'mobile' ? (
+              <StepWrapper key="mobile">
+                <h1 className="text-3xl font-bold text-slate-900">Welcome Back</h1>
+                <p className="text-slate-600 mt-2">
+                  Enter your mobile number to receive a verification code.
+                </p>
+
+                <div className="space-y-6 mt-8">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-200">
+                    <label htmlFor="mobile" className="text-sm font-medium text-slate-700">
                       Mobile Number
                     </label>
-                    <motion.div
-                      whileFocus={{ scale: 1.02 }}
-                      transition={{ type: "spring", stiffness: 300 }}
-                      className="relative"
-                    >
-                      <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-300 font-medium">
+                    <div className="relative">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium pointer-events-none">
                         +91
                       </div>
                       <Input
+                        id="mobile"
                         type="tel"
-                        placeholder="9876543210"
+                        placeholder="98765 43210"
                         value={mobileNumber}
                         onChange={handleMobileChange}
-                        className={`h-12 pl-14 bg-white/10 border-white/20 text-white placeholder:text-gray-400 focus:border-indigo-400 ${
-                          errors.mobile ? 'border-red-400' : ''
+                        className={`h-12 text-base pl-12 bg-slate-100 border-slate-200 focus:bg-white text-slate-900 placeholder:text-slate-400 ${
+                          errors.mobile ? 'border-red-500' : ''
                         }`}
                         maxLength={10}
                       />
-                    </motion.div>
+                    </div>
                     {errors.mobile && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="flex items-center gap-2 text-red-400 text-sm"
-                      >
+                      <div className="flex items-center gap-2 text-red-600 text-sm">
                         <AlertCircle className="h-4 w-4" />
                         {errors.mobile}
-                      </motion.div>
+                      </div>
                     )}
-                    <p className="text-xs text-gray-400">
-                      Enter your 10-digit mobile number without country code
-                    </p>
                   </div>
-
-                  <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+                  <Button
+                    onClick={handleSendOTP}
+                    disabled={isLoading}
+                    className="w-full h-12 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-base"
                   >
-                    <Button
-                      onClick={handleSendOTP}
-                      disabled={isLoading}
-                      className="w-full h-12 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold shadow-lg border-0"
-                    >
-                      {isLoading ? (
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                          className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
-                        />
-                      ) : (
-                        'Send OTP'
-                      )}
-                    </Button>
-                  </motion.div>
+                    {isLoading ? (
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                      />
+                    ) : 'Send OTP'}
+                  </Button>
+                </div>
 
-                  <div className="text-center">
-                    <p>Not registerd? <Link className='text-white underline' to={'/register'}>Register</Link></p>
-                    <p className="text-gray-400 text-sm">
-                      By continuing, you agree to our Terms of Service and Privacy Policy
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="otp-step"
-              initial={{ opacity: 0, x: 100 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -100 }}
-              transition={{ duration: 0.5, type: "spring" }}
-            >
-              <Card className="bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl">
-                <CardHeader className="text-center space-y-4">
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.2, type: "spring" }}
-                    className="mx-auto w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center"
-                  >
-                    <Shield className="h-8 w-8 text-white" />
-                  </motion.div>
-                  <CardTitle className="text-2xl font-bold text-white">
-                    Verify Your Mobile
-                  </CardTitle>
-                  <p className="text-gray-300">
-                    We've sent a 6-digit code to <br />
-                    <span className="font-semibold text-white">{getFullMobileNumber()}</span>
+                <div className="text-center mt-6">
+                  <p className="text-sm text-slate-600">
+                    Not registered? <Link className='font-medium text-slate-900 underline hover:text-slate-700' to={'/register'}>Create an account</Link>
                   </p>
-                </CardHeader>
+                </div>
+              </StepWrapper>
+            ) : (
+              <StepWrapper key="otp">
+                <h1 className="text-3xl font-bold text-slate-900">Verify Your Mobile</h1>
+                <p className="text-slate-600 mt-2">
+                  We've sent a 6-digit code to <br />
+                  <span className="font-semibold text-slate-800">{getFullMobileNumber()}</span>
+                </p>
                 
-                <CardContent className="space-y-6">
+                <div className="space-y-6 mt-8">
                   {successMessage && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="flex items-center gap-2 text-green-400 text-sm bg-green-400/10 p-3 rounded-lg border border-green-400/20"
-                    >
+                     <div className="flex items-center gap-2 text-green-700 text-sm bg-green-50 p-3 rounded-lg border border-green-200">
                       <CheckCircle2 className="h-4 w-4" />
                       {successMessage}
-                    </motion.div>
+                    </div>
                   )}
-
                   {errors.otp && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="flex items-center gap-2 text-red-400 text-sm bg-red-400/10 p-3 rounded-lg border border-red-400/20"
-                    >
+                    <div className="flex items-center gap-2 text-red-700 text-sm bg-red-50 p-3 rounded-lg border border-red-200">
                       <AlertCircle className="h-4 w-4" />
                       {errors.otp}
-                    </motion.div>
+                    </div>
                   )}
-
-                  <div className="space-y-4">
-                    <label className="text-sm font-medium text-gray-200 block text-center">
-                      Enter 6-digit code
-                    </label>
-                    <OTPInput
-                      length={6}
-                      value={otp}
-                      onChange={setOtp}
-                      onComplete={handleVerifyOTP}
-                    />
-                  </div>
-
-                  <div className="text-center space-y-4">
+                  <OTPInput
+                    length={6}
+                    value={otp}
+                    onChange={setOtp}
+                    onComplete={handleVerifyOTP}
+                  />
+                  <div className="text-center space-y-3">
                     <Timer
-                      initialTime={120} // 2 minutes
+                      initialTime={120}
                       onComplete={handleTimerComplete}
                       isActive={isTimerActive}
                     />
-                    
-                    <div className="space-y-2">
-                      <p className="text-gray-400 text-sm">
-                        Didn't receive the code?
-                      </p>
-                      <motion.button
-                        onClick={handleResendOTP}
-                        disabled={!canResend || isLoading}
-                        whileHover={{ scale: canResend && !isLoading ? 1.05 : 1 }}
-                        whileTap={{ scale: canResend && !isLoading ? 0.95 : 1 }}
-                        className={`text-sm font-semibold flex items-center gap-2 ${
-                          canResend && !isLoading
-                            ? 'text-indigo-400 hover:text-indigo-300' 
-                            : 'text-gray-500 cursor-not-allowed'
-                        }`}
-                      >
-                        {isLoading && (
-                          <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                            className="w-4 h-4 border-2 border-current border-t-transparent rounded-full"
-                          />
-                        )}
-                        Resend OTP
-                      </motion.button>
-                    </div>
+                    <button
+                      onClick={handleResendOTP}
+                      disabled={!canResend || isLoading}
+                      className="text-sm font-medium text-slate-900 hover:text-slate-700 disabled:text-slate-400 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Resend Code
+                    </button>
                   </div>
+                </div>
 
-                  <motion.button
-                    onClick={handleBackToMobile}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors mx-auto"
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                    Back to mobile number
-                  </motion.button>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                <button
+                  onClick={handleBackToMobile}
+                  className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors mx-auto mt-8 text-sm font-medium"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to mobile number
+                </button>
+              </StepWrapper>
+            )}
+          </AnimatePresence>
+
+          <p className="text-xs text-slate-400 text-center mt-12">
+            © {new Date().getFullYear()} Navbharat Niwas. All rights reserved.
+          </p>
+        </div>
       </div>
+      
+      {/* --- Right Panel: Image --- */}
+      <div className="hidden lg:flex items-center justify-center relative bg-slate-100 p-12">
+        <div 
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: "url('https://images.unsplash.com/photo-1586023492125-27b2c045efd7?q=80&w=2158&auto=format&fit=crop')" }}
+        >
+             <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent"></div>
+        </div>
 
-      {/* Background Elements */}
-      <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-black/50 to-transparent z-10" />
-      <div className="absolute top-0 right-0 w-full h-32 bg-gradient-to-b from-black/30 to-transparent z-10" />
+        <motion.div 
+            className="relative bg-white/70 backdrop-blur-md p-8 rounded-xl shadow-lg border border-white/50"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+        >
+          <h2 className="text-2xl font-bold text-slate-800">
+            Secure & Seamless Access
+          </h2>
+          <p className="mt-2 text-slate-600 max-w-sm">
+            Your digital gateway to Navbharat Niwas. Log in quickly and securely with OTP verification.
+          </p>
+        </motion.div>
+      </div>
     </div>
   );
 }
