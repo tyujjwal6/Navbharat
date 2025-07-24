@@ -1,8 +1,6 @@
 // src/components/RealEstatePage.jsx
 
-import React, { useState, useLayoutEffect, useRef } from 'react';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import React, { useState } from 'react';
 
 // Import Shadcn/ui Components
 import { Button } from "@/components/ui/button";
@@ -15,14 +13,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 // Import your image asset
 import buildingFutureImage from '@/assets/buildingfuture.png';
 
-// Register the GSAP ScrollTrigger plugin
-gsap.registerPlugin(ScrollTrigger);
-
-// StatCard component improved to handle non-numeric values for animation.
-const StatCard = ({ displayValue, numericValue, label }) => (
-  <Card className="stat-card bg-[#FDE8D4] border-0 shadow-none text-center rounded-2xl">
+// A static version of the StatCard component.
+const StatCard = ({ displayValue, label }) => (
+  <Card className="bg-[#FDE8D4] border-0 shadow-none text-center rounded-2xl">
     <CardContent className="flex flex-col justify-center items-center p-6 h-full">
-      <p className="stat-value text-4xl md:text-5xl font-bold text-slate-800" data-numeric-value={numericValue}>
+      <p className="text-4xl md:text-5xl font-bold text-slate-800">
         {displayValue}
       </p>
       <p className="mt-2 text-base text-slate-600">{label}</p>
@@ -39,136 +34,59 @@ export default function RealEstatePage() {
   const [isEnquirySubmitting, setIsEnquirySubmitting] = useState(false);
   const [enquiryData, setEnquiryData] = useState({ name: '', email: '', phone: '' });
 
-  const mainRef = useRef(null);
-
-  useLayoutEffect(() => {
-    const ctx = gsap.context(() => {
-      // The page tilt animation is already a scrub animation and works as intended.
-      gsap.to(mainRef.current, {
-        scrollTrigger: {
-          trigger: document.documentElement,
-          start: "top top",
-          end: "bottom bottom",
-          scrub: 1.5,
-        },
-        rotation: -4,
-        scale: 1.05,
-        ease: 'none',
-      });
-
-      // --- Intro Animations (Search Bar) - Kept as a one-time entrance animation ---
-      gsap.from('.search-field', { opacity: 0, y: 50, duration: 0.8, stagger: 0.15, ease: 'power3.out' });
-      gsap.from('.search-button', { opacity: 0, scale: 0.8, duration: 0.8, delay: 0.6, ease: 'elastic.out(1, 0.75)' });
-
-      // --- Text Slide-Up Reveal Animation for Main Paragraph (NOW SCRUBBED) ---
-      gsap.from(".intro-paragraph-line", {
-        scrollTrigger: {
-          trigger: ".intro-paragraph",
-          start: "top bottom", // Start animating as soon as the trigger enters the viewport
-          end: "bottom 70%",   // End when the bottom of the trigger is 70% from the top
-          scrub: 1, // Link animation progress to scrollbar
-        },
-        yPercent: 110, skewY: 7, opacity: 0, ease: 'power4.out',
-      });
-      
-      // --- Section Wipe-In Transition for Stats Section (NOW SCRUBBED) ---
-      gsap.from('.stats-section-container', {
-        scrollTrigger: {
-          trigger: '.stats-section-container',
-          start: 'top 90%',
-          end: 'top 50%',
-          scrub: 1.2,
-        },
-        clipPath: 'inset(0 100% 0 0)',
-        ease: 'power3.inOut'
-      });
-
-      // Stat Cards Animation (NOW SCRUBBED via a timeline)
-      const statsTimeline = gsap.timeline({
-          scrollTrigger: {
-              trigger: '.stats-grid',
-              start: 'top 85%',
-              end: 'top 40%',
-              scrub: 1,
-          }
-      });
-      statsTimeline.from('.stat-card', {
-          opacity: 0, y: 50, scale: 0.95, stagger: 0.2, ease: 'back.out(1.4)',
-      });
-
-      // Number Counting Animation (NOW REVERSIBLE)
-      gsap.utils.toArray('.stat-value').forEach(el => {
-        const endValue = parseInt(el.dataset.numericValue, 10);
-        if (!isNaN(endValue)) {
-          gsap.from(el, {
-            textContent: 0, duration: 2, ease: 'power2.out', snap: { textContent: 1 },
-            scrollTrigger: {
-              trigger: el,
-              start: 'top 90%',
-              // This makes the animation play, reverse, play again, and reverse again.
-              toggleActions: 'play reverse play reverse',
-            },
-          });
-        }
-      });
-
-      // --- Building the Future Section ---
-
-      // Parallax/Scrub Animation for the image (already scrubbed, no changes needed)
-      gsap.to(".building-image", {
-        scale: 1.15, ease: 'none',
-        scrollTrigger: {
-          trigger: ".building-future-section",
-          start: "top bottom",
-          end: "bottom top",
-          scrub: 1,
-        }
-      });
-
-      // Text Slide-Up Reveal for the overlay text (NOW SCRUBBED)
-      const overlayTextTimeline = gsap.timeline({
-        scrollTrigger: {
-          trigger: '.building-future-section',
-          start: 'top 70%',
-          end: 'top 30%',
-          scrub: 1,
-        }
-      });
-      overlayTextTimeline.from('.overlay-text', {
-        yPercent: 120, skewY: 5, stagger: 0.1, ease: 'power3.out'
-      }).from('.enquire-button-reveal', {
-        opacity: 0, scale: 0.8, ease: 'elastic.out(1, 0.75)'
-      }, '-=0.5');
-
-    }, mainRef);
-
-    return () => ctx.revert();
-  }, []);
+  // All form handling logic remains the same.
+  const handleSearchSubmit = async (e) => {
+    e.preventDefault();
+    if (!budget || !location) {
+      alert('Please select a budget and enter a location.');
+      return;
+    }
+    setIsSearchSubmitting(true);
+    setTimeout(() => {
+        alert('Search submitted! Check the console.');
+        setIsSearchSubmitting(false);
+    }, 1500);
+  };
   
-  // No changes needed for form handlers
-  const handleSearchSubmit = async (e) => { e.preventDefault(); /* ... */ };
-  const handleEnquirySubmit = async (e) => { e.preventDefault(); /* ... */ };
-  const handleEnquiryInputChange = (e) => { const { name, value } = e.target; setEnquiryData(prev => ({ ...prev, [name]: value })); };
+  const handleEnquirySubmit = async (e) => {
+    e.preventDefault();
+    setIsEnquirySubmitting(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      alert('Enquiry sent successfully! We will get in touch with you soon.');
+      setIsEnquirySubmitting(false);
+      setIsModalOpen(false);
+      setEnquiryData({ name: '', email: '', phone: '' });
+    } catch (error) {
+        alert('Something went wrong. Please try again.');
+        setIsEnquirySubmitting(false);
+    }
+  };
+
+  const handleEnquiryInputChange = (e) => {
+    const { name, value } = e.target;
+    setEnquiryData(prev => ({ ...prev, [name]: value }));
+  };
 
   return (
-    <div ref={mainRef} className="bg-white min-h-screen w-full font-sans">
+    <div className="bg-white min-h-screen w-full font-sans">
       <div className="bg-gray-50/50 border-b border-gray-200">
         <div className="container mx-auto px-4 pt-8 pb-6">
           <form onSubmit={handleSearchSubmit}>
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 items-end">
-              <div className="flex flex-col space-y-2 search-field">
+              <div className="flex flex-col space-y-2">
                 <Label htmlFor="propertyType" className="font-semibold text-green-700">Property Type</Label>
                 <Input id="propertyType" type="text" placeholder="Plot, Villa, etc." value={propertyType} onChange={(e) => setPropertyType(e.target.value)} className="bg-white"/>
               </div>
-              <div className="flex flex-col space-y-2 search-field">
+              <div className="flex flex-col space-y-2">
                 <Label className="font-semibold text-green-700">Budget</Label>
                 <Select onValueChange={setBudget} value={budget}><SelectTrigger className="bg-white"><SelectValue placeholder="Select Budget" /></SelectTrigger><SelectContent><SelectItem value="<50L">Under ₹50 Lakh</SelectItem><SelectItem value="50L-1Cr">₹50 Lakh - ₹1 Crore</SelectItem><SelectItem value="1Cr-2Cr">₹1 Crore - ₹2 Crore</SelectItem><SelectItem value=">2Cr">Above ₹2 Crore</SelectItem></SelectContent></Select>
               </div>
-              <div className="flex flex-col space-y-2 search-field">
+              <div className="flex flex-col space-y-2">
                 <Label htmlFor="location" className="font-semibold text-green-700">Location</Label>
                 <Input id="location" type="text" placeholder="Enter Location" value={location} onChange={(e) => setLocation(e.target.value)} className="bg-white"/>
               </div>
-              <Button type="submit" disabled={isSearchSubmitting} className="w-full bg-green-600 hover:bg-green-700 lg:col-span-1 search-button">
+              <Button type="submit" disabled={isSearchSubmitting} className="w-full bg-green-600 hover:bg-green-700 lg:col-span-1">
                 {isSearchSubmitting ? 'Searching...' : 'Search Properties'}
               </Button>
             </div>
@@ -178,32 +96,26 @@ export default function RealEstatePage() {
       
       <main className="container mx-auto px-4">
         <section className="text-center my-16 md:my-20 max-w-4xl mx-auto">
-          <div className="intro-paragraph overflow-hidden">
-             <p className="intro-paragraph-line text-xl md:text-2xl font-semibold text-slate-800 leading-relaxed">
-              We at <span className="font-bold">NavBharat Niwas</span> 🏡 are proud to serve you with the best and most affordable plots and homes across India 🇮🇳. Whether you're looking for residential, commercial, or investment opportunities — we've got you covered! ✅ Our properties are government-verified, legally clear, and delivered with trust and transparency 🤝. Join hands with one of the top builders in India and take a confident step toward your dream home today! ✨
-            </p>
-          </div>
+          <p className="text-xl md:text-2xl font-semibold text-slate-800 leading-relaxed">
+            We at <span className="font-bold">NavBharat Niwas</span> 🏡 are proud to serve you with the best and most affordable plots and homes across India 🇮🇳. Whether you're looking for residential, commercial, or investment opportunities — we've got you covered! ✅ Our properties are government-verified, legally clear, and delivered with trust and transparency 🤝. Join hands with one of the top builders in India and take a confident step toward your dream home today! ✨
+          </p>
         </section>
         
-        <section className="stats-section-container bg-gray-100/70 p-6 md:p-10 rounded-2xl mb-16">
-          <div className="stats-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatCard displayValue="4+" numericValue="4" label="States Covered" />
-            <StatCard displayValue="200+" numericValue="200" label="Trusted Clients" />
-            <StatCard displayValue="25+" numericValue="25" label="Our Team" />
-            <StatCard displayValue="7+" numericValue="7" label="Years Experience" />
+        <section className="bg-gray-100/70 p-6 md:p-10 rounded-2xl mb-16">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatCard displayValue="4+" label="States Covered" />
+            <StatCard displayValue="200+" label="Trusted Clients" />
+            <StatCard displayValue="25+" label="Our Team" />
+            <StatCard displayValue="7+" label="Years Experience" />
           </div>
 
-          <div className="building-future-section mt-12 relative rounded-2xl overflow-hidden group">
-            <img src={buildingFutureImage} alt="Modern architecture representing the future" className="building-image w-full h-[400px] object-cover"/>
+          <div className="mt-12 relative rounded-2xl overflow-hidden group">
+            <img src={buildingFutureImage} alt="Modern architecture representing the future" className="w-full h-[400px] object-cover transition-transform duration-500 ease-in-out group-hover:scale-105"/>
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent flex flex-col justify-end items-center text-center p-8">
-              <div className="overflow-hidden mb-4">
-                  <h3 className="overlay-text text-3xl md:text-5xl font-extrabold text-white drop-shadow-lg">Building the Future of India</h3>
-              </div>
-              <div className="overflow-hidden mb-8">
-                  <p className="overlay-text text-lg text-gray-200 drop-shadow-md max-w-2xl">Your dream property is just an enquiry away. Let's build together.</p>
-              </div>
+              <h3 className="text-3xl md:text-5xl font-extrabold text-white drop-shadow-lg mb-4">Building the Future of India</h3>
+              <p className="text-lg text-gray-200 drop-shadow-md max-w-2xl mb-8">Your dream property is just an enquiry away. Let's build together.</p>
               
-              <div className="enquire-button-reveal">
+              <div>
                 <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                   <DialogTrigger asChild>
                     <Button size="lg" className="bg-white text-green-700 font-bold text-lg hover:bg-gray-200 transition-all duration-300 transform group-hover:scale-105">
