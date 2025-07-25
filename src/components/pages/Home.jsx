@@ -1,13 +1,12 @@
-// src/pages/EvergreenPage.jsx
-
 import React, { useLayoutEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 import bgVideo from '../../assets/mainbg.mp4'; // Adjust the path as necessary
+import contentImage from '../../assets/photo.png'; // Import the image
 
 // Import your other page components
-import Header from './Header'; 
+import Header from './Header';
 import RealEstatePage from './RealEstatePage';
 import OngoingProjects from './OngoingProjects';
 import About from './About';
@@ -20,7 +19,7 @@ gsap.registerPlugin(ScrollTrigger);
 const EvergreenPage = () => {
   const mainRef = useRef(null);
   const heroRef = useRef(null);
-  const contentRef = useRef(null); // Ref for the main white content section
+  const contentRef = useRef(null); // Ref for the main content section
 
   useLayoutEffect(() => {
     // GSAP Context for safe animation cleanup
@@ -30,7 +29,7 @@ const EvergreenPage = () => {
       const entranceTimeline = gsap.timeline({
         defaults: { ease: 'power3.out', duration: 1.2 }
       });
-      
+
       entranceTimeline
         .from('.hero-tag', { opacity: 0, y: 30, stagger: 0.1, })
         .from('.hero-title-line-inner', { yPercent: 120, skewY: 5, stagger: 0.15 }, "-=0.8")
@@ -47,14 +46,14 @@ const EvergreenPage = () => {
         }
       });
 
-      // A) The white content section performs a "liquid wipe" over the hero
-      mainScrollTimeline.fromTo(contentRef.current, 
-        { 
+      // A) The main content section performs a "liquid wipe" over the hero
+      mainScrollTimeline.fromTo(contentRef.current,
+        {
           y: "100vh", // Start 100% of the viewport height down
           borderTopLeftRadius: "50vw", // Start with curved top corners
           borderTopRightRadius: "50vw",
         },
-        { 
+        {
           y: "0vh", // End perfectly at the top
           borderTopLeftRadius: "0vw", // End with sharp corners
           borderTopRightRadius: "0vw",
@@ -76,9 +75,9 @@ const EvergreenPage = () => {
         scale: 1.1,
         ease: 'none'
       }, 0);
-      
+
       // --- 3. Dynamic Header Animation ---
-      gsap.fromTo('.main-header', 
+      gsap.fromTo('.main-header',
         { yPercent: -100, autoAlpha: 0 },
         {
           scrollTrigger: {
@@ -98,7 +97,7 @@ const EvergreenPage = () => {
 
   return (
     <div ref={mainRef} className="relative w-full font-sans bg-black">
-      
+
       {/* Container for the background video which will be animated */}
       <div className="background-video-container absolute top-0 left-0 w-full h-screen">
         <video
@@ -109,47 +108,58 @@ const EvergreenPage = () => {
           muted
           playsInline
         />
+        <div className="w-full">
+           <img 
+              src={contentImage} 
+              alt="Modern architectural building with a sleek design" 
+              className="w-full h-auto object-cover" 
+           />
+        </div>
         <div className="absolute top-0 left-0 w-full h-full bg-black/50"></div>
       </div>
 
       {/* The Header is positioned separately for independent animation */}
       <div className="main-header fixed top-0 left-0 w-full z-50 invisible">
-         <Header />
+        <Header />
       </div>
 
       {/* Hero Section Container (This will be pinned and its content animated) */}
       <div ref={heroRef} className="relative flex flex-col h-screen text-white">
-        {/* Added a container here to specifically target hero content for animations */}
         <div className="hero-content-container flex-grow flex items-center px-4 sm:px-8 md:px-16">
-            <div className="w-full flex flex-col md:flex-row justify-between items-end gap-8">
-                <div className="max-w-3xl">
-                <div className="hero-tags-container flex space-x-3 mb-4">
-                    <span className="hero-tag bg-white/20 backdrop-blur-sm px-4 py-1 rounded-full text-sm">House</span>
-                    <span className="hero-tag bg-white/20 backdrop-blur-sm px-4 py-1 rounded-full text-sm">Apartment</span>
-                    <span className="hero-tag bg-white/20 backdrop-blur-sm px-4 py-1 rounded-full text-sm">Residential</span>
+          <div className="w-full flex flex-col md:flex-row justify-between items-end gap-8">
+            <div className="max-w-3xl">
+              <div className="hero-tags-container flex space-x-3 mb-4">
+                <span className="hero-tag bg-white/20 backdrop-blur-sm px-4 py-1 rounded-full text-sm">House</span>
+                <span className="hero-tag bg-white/20 backdrop-blur-sm px-4 py-1 rounded-full text-sm">Apartment</span>
+                <span className="hero-tag bg-white/20 backdrop-blur-sm px-4 py-1 rounded-full text-sm">Residential</span>
+              </div>
+              <div className="hero-title">
+                <div className="hero-title-line overflow-hidden">
+                  <h2 className="hero-title-line-inner text-5xl sm:text-6xl md:text-7xl font-light leading-tight">Build Your Future, One</h2>
                 </div>
-                <div className="hero-title">
-                    <div className="hero-title-line overflow-hidden">
-                    <h2 className="hero-title-line-inner text-5xl sm:text-6xl md:text-7xl font-light leading-tight">Build Your Future, One</h2>
-                    </div>
-                    <div className="hero-title-line overflow-hidden">
-                    <h2 className="hero-title-line-inner text-5xl sm:text-6xl md:text-7xl font-light leading-tight">Property at a Time.</h2>
-                    </div>
+                <div className="hero-title-line overflow-hidden">
+                  <h2 className="hero-title-line-inner text-5xl sm:text-6xl md:text-7xl font-light leading-tight">Property at a Time.</h2>
                 </div>
-                </div>
-                <div className="max-w-xs text-right text-gray-300 text-sm hidden lg:block">
-                <p className="hero-description">Own Your World. One Property at a Time. Own Your World. One Property at a Time. Own Your World. One Property at a Time. Own Your World. One Property at a Time.</p>
-                </div>
+              </div>
             </div>
+            <div className="max-w-xs text-right text-gray-300 text-sm hidden lg:block">
+              <p className="hero-description">Own Your World. One Property at a Time. Own Your World. One Property at a Time. Own Your World. One Property at a Time. Own Your World. One Property at a Time.</p>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Main Content (The white section that wipes over the hero) */}
       <div ref={contentRef} className="relative z-10 bg-white">
+        
+        {/* Image Section - This is now the first element inside the content area */}
+        
+        
+        {/* The rest of your page components follow the image */}
         <RealEstatePage />
         <OngoingProjects />
         <About />
-        <ActionButtons /> 
+        <ActionButtons />
         <Footer />
       </div>
     </div>
