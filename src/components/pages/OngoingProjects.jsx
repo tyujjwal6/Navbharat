@@ -49,7 +49,7 @@ const ProjectCard = ({ project }) => (
       <div className="mt-auto">
         {/* KEY CHANGE: The button is now a Link component */}
         <Link
-          to={'/smart-city-shamli'} // Use the path from the project object
+          to={project.path}
           className="block w-full text-center bg-blue-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-600 transition-colors duration-300"
         >
           View Portfolio
