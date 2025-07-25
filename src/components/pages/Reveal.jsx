@@ -8,41 +8,68 @@ if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
 }
 
-// <<< The `delay` and `duration` props are less relevant for scrub animations,
-// so we can simplify the component's API.
+// The `y` prop now acts as a default for larger screens.
 const Reveal = ({ children, y = 75 }) => {
   const el = useRef(null);
 
   useLayoutEffect(() => {
     const element = el.current;
     
-    // Animate the element's children
-    gsap.fromTo(
-      element.children,
-      {
-        y: y,
-        opacity: 0,
-      },
-      {
-        y: 0,
-        opacity: 1,
-        ease: 'none', // Use 'none' for a linear feel that matches scroll speed
-        scrollTrigger: {
-          trigger: element,
-          start: 'top 90%', // When the top of the element hits 90% down the viewport
-          end: 'bottom 85%', // When the bottom of the element hits 85% down the viewport
-          
-          // <<< KEY CHANGE HERE
-          // This links the animation directly to the scrollbar.
-          // A value of 1.5 adds a 1.5-second smoothing "lag", which makes it feel deliberate and slow.
-          scrub: 1.5,
+    // Use GSAP Context for proper cleanup, which is essential with React's lifecycle.
+    const ctx = gsap.context(() => {
+      
+      // <<< KEY CHANGE FOR RESPONSIVENESS
+      // Use matchMedia to create different animations for different screen sizes.
+      ScrollTrigger.matchMedia({
+        
+        // --- Desktop Animation (screens wider than 768px) ---
+        "(min-width: 768px)": function() {
+          gsap.fromTo(
+            element.children,
+            { y: y, opacity: 0 },
+            {
+              y: 0,
+              opacity: 1,
+              ease: 'none',
+              scrollTrigger: {
+                trigger: element,
+                start: 'top 90%',
+                end: 'bottom 85%',
+                scrub: 1.5,
+              },
+            }
+          );
         },
-      }
-    );
-  }, [y]);
+
+        // --- Mobile Animation (screens 767px or less) ---
+        "(max-width: 767px)": function() {
+          // Use a smaller 'y' value for a more subtle effect on mobile.
+          gsap.fromTo(
+            element.children,
+            { y: 50, opacity: 0 }, // Reduced from 75 to 50
+            {
+              y: 0,
+              opacity: 1,
+              ease: 'none',
+              scrollTrigger: {
+                trigger: element,
+                start: 'top 95%', // Start a little later on mobile
+                end: 'bottom 90%',
+                scrub: 1.5,
+              },
+            }
+          );
+        },
+      });
+
+    }, el); // Scope the context to the component's root element
+
+    // Cleanup function to revert all animations within the context
+    return () => ctx.revert();
+
+  }, [y]); // The dependency array is still useful
 
   // The overflow-hidden wrapper is crucial for the masking effect.
-  // Adding a little padding can prevent visual clipping at the start/end of the animation.
   return (
     <div ref={el} className="overflow-hidden py-1">
       {children}
