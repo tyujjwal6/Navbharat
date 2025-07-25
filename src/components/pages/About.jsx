@@ -1,14 +1,13 @@
 // src/components/About.jsx
 
 import React, { useState, useRef, useLayoutEffect } from 'react';
-import { Phone } from 'lucide-react';
+import { Phone, CheckCircle } from 'lucide-react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
-// Import the modals
-import { EnquiryModal, ProjectsModal } from './Modals'; // Adjust path if needed
+import Reveal from './Reveal'; // Import the updated Reveal component
+import { EnquiryModal, ProjectsModal } from './Modals';
 
-// Register GSAP plugin
 gsap.registerPlugin(ScrollTrigger);
 
 const About = () => {
@@ -18,85 +17,94 @@ const About = () => {
   const mainRef = useRef(null);
 
   useLayoutEffect(() => {
-    // Create a context for our animations to avoid conflicts
     const ctx = gsap.context(() => {
-      
-      // Animate the main card entrance
-      gsap.from('.about-card', {
+      // These animations are correct and remain unchanged.
+      gsap.to('.about-card', {
+        yPercent: -10,
+        ease: 'none',
         scrollTrigger: {
-          trigger: '.about-card',
-          start: 'top 85%', // Start animation when 85% of the card is visible
-          toggleActions: 'play none none none',
-        },
-        opacity: 0,
-        y: 100,
-        duration: 1.2,
-        ease: 'power3.out',
-      });
-
-      // Create a timeline for the content inside the card
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: '.about-card',
-          start: 'top 75%',
-          toggleActions: 'play none none none',
+          trigger: '.about-card-wrapper',
+          start: 'top bottom',
+          end: 'bottom top',
+          scrub: 1.5,
         },
       });
 
-      // Staggered animation for the content
-      tl.from('.about-title, .title-divider', { opacity: 0, y: -40, stagger: 0.15, duration: 0.8, ease: 'power2.out' })
-        .from('.about-paragraph', { opacity: 0, y: 30, duration: 1, ease: 'power2.out' }, '-=0.5')
-        .from('.serve-title', { opacity: 0, y: 20, duration: 0.8, ease: 'power2.out' }, '-=0.6')
-        .from('.list-item', { opacity: 0, x: -30, stagger: 0.2, duration: 0.7, ease: 'back.out(1.4)' }, '-=0.4')
-        .from('.projects-button', { opacity: 0, scale: 0.8, duration: 1, ease: 'elastic.out(1, 0.75)' }, '-=0.5');
-
-      // Floating Action Button animation
       gsap.from('.fab-enquire', {
-        delay: 1, // Give a slight delay to let the page settle
-        duration: 1.2,
+        scrollTrigger: {
+          trigger: mainRef.current,
+          start: 'top 50%',
+          toggleActions: 'play none none reverse',
+        },
         scale: 0,
         opacity: 0,
-        ease: 'elastic.out(1, 0.6)',
+        duration: 0.8,
+        ease: 'back.out(1.7)',
       });
 
     }, mainRef);
 
-    // Cleanup function
     return () => ctx.revert();
   }, []);
 
   return (
     <>
-      <section ref={mainRef} className="bg-gray-100 py-12 sm:py-16 lg:py-20 overflow-hidden">
-        <div className="max-w-4xl mx-auto px-4">
-          <div className="about-card bg-[#fceded] text-[#3A3A3A] p-8 sm:p-10 lg:p-12 rounded-lg shadow-md">
+      <section ref={mainRef} className="bg-gray-100 py-16 sm:py-20 lg:py-24 overflow-x-hidden">
+        <div className="about-card-wrapper max-w-4xl mx-auto px-4">
+          <div className="about-card bg-[#fceded] text-[#3A3A3A] p-8 sm:p-10 lg:p-12 rounded-2xl shadow-xl">
             
             <div className="text-center mb-8">
-              <h2 className="about-title text-3xl md:text-4xl font-bold">About Us</h2>
-              <div className="title-divider w-20 h-1 bg-gray-400 mx-auto mt-3"></div>
+              {/* <<< FIXED: The 'delay' props have been removed. */}
+              <Reveal>
+                <h2 className="text-3xl md:text-4xl font-bold">About Us</h2>
+              </Reveal>
+              <Reveal>
+                <div className="w-24 h-1 bg-gray-400 mx-auto mt-4 rounded-full"></div>
+              </Reveal>
             </div>
-
-            <p className="about-paragraph text-base md:text-lg leading-relaxed text-center mb-8">
-              Nav Bharat Niwas is a trusted real estate company based in Noida, Uttar Pradesh, located in Sector 63 near the metro station. We specialize in providing premium land sales to help you secure valuable investments. Our team is dedicated to offering transparent, reliable, and affordable real estate solutions. Whether you are looking for residential or commercial land, we offer properties with high growth potential. Join us at Nav Bharat Niwas and take the first step towards building a secure future with prime land investments.
-            </p>
+            
+            <Reveal>
+              <p className="text-base md:text-lg leading-relaxed text-center mb-10">
+                Nav Bharat Niwas is a trusted real estate company based in Noida, Uttar Pradesh, located in Sector 63 near the metro station. We specialize in providing premium land sales to help you secure valuable investments. Our team is dedicated to offering transparent, reliable, and affordable real estate solutions. Whether you are looking for residential or commercial land, we offer properties with high growth potential. Join us at Nav Bharat Niwas and take the first step towards building a secure future with prime land investments.
+              </p>
+            </Reveal>
 
             <div className="text-center my-8">
-              <h3 className="serve-title text-xl md:text-2xl font-bold">We Serve</h3>
+              <Reveal>
+                <h3 className="text-xl md:text-2xl font-bold">We Serve</h3>
+              </Reveal>
             </div>
-
-            <ul className="list-disc list-inside space-y-4 text-base md:text-lg mx-auto max-w-2xl mb-10">
-              <li className="list-item">End-to-end real estate consultancy for investors and homebuyers.</li>
-              <li className="list-item">No hidden charges – full disclosure of pricing, layout, and specifications.</li>
-              <li className="list-item">Land titles that are verified and legally acquired with proper documentation.</li>
+            
+            <ul className="space-y-4 text-base md:text-lg mx-auto max-w-2xl mb-12">
+              <Reveal>
+                <li className="flex items-start space-x-3">
+                  <CheckCircle className="text-green-600 mt-1 flex-shrink-0" size={20} />
+                  <span>End-to-end real estate consultancy for investors and homebuyers.</span>
+                </li>
+              </Reveal>
+              <Reveal>
+                <li className="flex items-start space-x-3">
+                  <CheckCircle className="text-green-600 mt-1 flex-shrink-0" size={20} />
+                  <span>No hidden charges – full disclosure of pricing, layout, and specifications.</span>
+                </li>
+              </Reveal>
+              <Reveal>
+                <li className="flex items-start space-x-3">
+                  <CheckCircle className="text-green-600 mt-1 flex-shrink-0" size={20} />
+                  <span>Land titles that are verified and legally acquired with proper documentation.</span>
+                </li>
+              </Reveal>
             </ul>
 
             <div className="text-center">
-              <button 
-                onClick={() => setProjectsModalOpen(true)}
-                className="projects-button bg-[#2D3748] text-white font-semibold py-3 px-8 rounded-lg shadow-md hover:bg-[#1A202C] transition-colors duration-300 transform hover:scale-105"
-              >
-                See Delivered and Upcoming projects
-              </button>
+              <Reveal>
+                <button 
+                  onClick={() => setProjectsModalOpen(true)}
+                  className="bg-[#2D3748] text-white font-semibold py-3 px-8 rounded-lg shadow-md hover:bg-[#1A202C] transition-colors duration-300 transform hover:scale-105"
+                >
+                  See Delivered and Upcoming projects
+                </button>
+              </Reveal>
             </div>
           </div>
         </div>
@@ -105,7 +113,7 @@ const About = () => {
       {/* Floating Action Button for Enquiry */}
       <button
         onClick={() => setEnquiryModalOpen(true)}
-        className="fab-enquire fixed bottom-6 right-6 md:bottom-8 md:right-8 bg-[#2D3748] text-white w-16 h-16 rounded-full shadow-lg flex items-center justify-center hover:bg-[#1A202C] hover:scale-110 transition-all duration-300 z-40"
+        className="fab-enquire fixed bottom-6 right-6 md:bottom-8 md:right-8 bg-[#2D3748] text-white w-16 h-16 rounded-full shadow-lg flex items-center justify-center hover:bg-[#1A202C] hover:scale-110 z-40"
         aria-label="Enquire Now"
       >
         <Phone size={28} />
