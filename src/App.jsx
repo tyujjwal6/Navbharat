@@ -21,6 +21,7 @@ import OngoingProjects from './components/pages/OngoingProjects';
 import About from './components/pages/About';
 import Footer from './components/pages/Footer';
 import ActionButtons from './components/pages/ActionButtons';
+import SmartCityShamli from './components/pages/SmartCityShamli';
 
 function App() {
   const defaultTitle = "EverGreen Properties";
@@ -62,6 +63,7 @@ function App() {
                 <Route path="/about" element={<About />} />
                 <Route path="/footer" element={<Footer />} />
                 <Route path="/actionbuttons" element={<ActionButtons />} />
+                <Route path="/smart-city-shamli" element={<SmartCityShamli />} />
               </Route>
               
               <Route path='*' element={<NotFound />} />
