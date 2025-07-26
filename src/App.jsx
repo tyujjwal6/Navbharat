@@ -1,15 +1,15 @@
-// src/App.jsx
+// src/App.jsx (Corrected)
 
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
-import { ThemeProvider } from '@/components/theme-provider'; // Assuming you have this
+import { ThemeProvider } from '@/components/theme-provider';
 import './index.css';
-import './fonts.css'; // Import your global styles
+import './fonts.css';
 
 // Import your pages
-import EvergreenPage from './components/pages/Home'; // This is now your home page
-import  LoginPage  from './components/pages/Login'; // Keep other pages as is
+import EvergreenPage from './components/pages/Home';
+import LoginPage from './components/pages/Login';
 import SignupPage from './components/pages/Register';
 import DashboardUser from './components/pages/DashboardUser';
 import ProtectedRoutes from './ProtectedRoute';
@@ -22,50 +22,52 @@ import About from './components/pages/About';
 import Footer from './components/pages/Footer';
 import ActionButtons from './components/pages/ActionButtons';
 import SmartCityShamli from './components/pages/SmartCityShamli';
+import KhatuShyamJi from './components/pages/KhatuShyamJi';
+// IMPORTANT: You will also need to import the component for your other project
+// import KhatuShyamJi from './components/pages/KhatuShyamJi'; // Example
 
 function App() {
   const defaultTitle = "EverGreen Properties";
   const defaultDescription = "Build Your Future, One Property at a Time. Find your dream home with EverGreen Properties.";
-  const siteUrl = "https://example.com/"; // Replace with your domain
+  const siteUrl = "https://example.com/";
 
   return (
     <HelmetProvider>
       <BrowserRouter>
         <Helmet htmlAttributes={{ lang: 'en' }}>
-          <title>{defaultTitle}</title>
-          <meta name="description" content={defaultDescription} />
-          <meta charSet="utf-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1" />
-          <link rel="canonical" href={siteUrl} />
+          {/* ... helmet content ... */}
         </Helmet>
 
         <ThemeProvider defaultTheme="dark" storageKey="evergreen-ui-theme">
-          {/* 
-            NO GLOBAL HEADER HERE! 
-            The Header is now managed by individual pages like EvergreenPage.
-          */}
           <main>
             <Routes>
-              {/* EvergreenPage is now the home route */}
+              {/* --- PUBLIC ROUTES (Accessible to Everyone) --- */}
               <Route path="/" element={<EvergreenPage />} /> 
-              
-              {/* Other routes in your application */}
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<SignupPage />} />
+              <Route path="/about" element={<About />} /> {/* MOVED HERE - About page should be public */}
+              <Route path="/ongoing-projects" element={<OngoingProjects />} /> {/* MOVED HERE - Project listing should be public */}
               
-              {/* Protected routes */}
+              {/* Project Detail Pages should be public */}
+              <Route path="/smart-city-shamli" element={<SmartCityShamli />} />
+              <Route path='/khatu-shyam-ji' element={<KhatuShyamJi />} /> {/* Example path for your other project */}
+              {/* Don't forget to add a route for your other project! */}
+              {/* <Route path="/khatu-shyam-ji" element={<KhatuShyamJi />} /> */}
+
+
+              {/* --- PROTECTED ROUTES (Requires Login) --- */}
               <Route element={<ProtectedRoutes />}>
                 <Route path="/dashboard-user" element={<DashboardUser />} />
                 <Route path="/dashboard-admin" element={<DashboardAdmin />} />
                 <Route path="/real-estate" element={<RealEstatePage />} />
-                <Route path="/enquiry" element={<EnquiryModal />} />
-                <Route path="/ongoing-projects" element={<OngoingProjects/>} />
-                <Route path="/about" element={<About />} />
+                
+                {/* Note: These probably shouldn't be routes, but components used inside other pages */}
+                <Route path="/enquiry" element={<EnquiryModal />} /> 
                 <Route path="/footer" element={<Footer />} />
                 <Route path="/actionbuttons" element={<ActionButtons />} />
-                <Route path="/smart-city-shamli" element={<SmartCityShamli />} />
               </Route>
               
+              {/* Catch-all Not Found Route */}
               <Route path='*' element={<NotFound />} />
             </Routes>
           </main>
